@@ -1,6 +1,4 @@
 #include "ifj.h"
-#include <stdio.h>
-#include <stdlib.h>
 
 int main(int argc, char **argv){
 
@@ -14,9 +12,6 @@ int main(int argc, char **argv){
 		fprintf(stderr, "Unable to open input file '%s'\n", argv[1]);
 		return FILE_ERROR;
 	}
-
-
-
 
 	return SUCCESS;
 }

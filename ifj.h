@@ -1,6 +1,12 @@
 #ifndef IFJ_H
 #define IFJ_H
 
+#include "ial.h" 
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+
 enum {
 	SUCCESS             = 0,
 	LEX_ERROR           = 1,
