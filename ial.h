@@ -3,6 +3,22 @@
 
 #include "ifj.h"
 
+typedef struct tToken tToken;
+typedef struct tToken{
+	char *key;
+	unsigned length;
+	tToken *next;
+}tToken;
+
+typedef struct {
+	unsigned long size;
+	unsigned int (*hashFunction)(const char *, unsigned);
+	unsigned long n;
+	tToken **data;
+}hTable;
+
+unsigned int hashFunction(const char *str, unsigned htab_size);
+
 /**
 * \brief vrati delku retezce
 * \param s retezec
