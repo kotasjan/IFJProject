@@ -5,8 +5,8 @@
 typedef struct
 {
   char * chars;		// Nazev retezce
-  int length;		// Pocet znaku + koncova 0
-  int all_size;		// Pocet alokovanych bajtu
+  unsigned length;		// Pocet znaku + koncova 0
+  unsigned alloc_size;	// Pocet alokovanych bajtu
 } token;
 
 #endif // SCANER_H
