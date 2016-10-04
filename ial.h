@@ -1,20 +1,18 @@
 #ifndef IAL_H
 #define IAL_H
+#include "scaner.h"
 
-#include "ifj.h"
-
-typedef struct tToken tToken;
-typedef struct tToken{
-	char *key;
-	unsigned length;
-	tToken *next;
-}tToken;
+typedef struct tList{
+	int typ;
+	tToken token;
+	struct tList *next;
+}tList;
 
 typedef struct {
 	unsigned long size;
 	unsigned int (*hashFunction)(const char *, unsigned);
 	unsigned long n;
-	tToken **data;
+	tList **data;
 }hTable;
 
 unsigned int hashFunction(const char *str, unsigned htab_size);

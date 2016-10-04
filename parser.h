@@ -1,6 +1,2 @@
-#ifndef PARSER_H
-#define PARSER_H
-#include "ifj.h"
+#pragma once
 
-
-#endif // PARSER_H

@@ -1,7 +1,6 @@
 #ifndef IFJ_H
 #define IFJ_H
 
-#include "ial.h" 
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,7 +8,7 @@
 
 enum {
 	SUCCESS             = 0,
-	LEX_ERROR           = 1,
+	LEXICAL_ERROR       = 1,
 	SYNTAX_ERROR        = 2,
 	SEM_ERROR           = 3,
 	SEM_TYPE_ERROR      = 4,

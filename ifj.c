@@ -1,6 +1,10 @@
 #include "ifj.h"
+#include "ial.h"
+#include "scaner.h"
 
 int main(int argc, char **argv){
+
+	int ret;
 
 	if(argc != 2) {
 		fprintf(stderr, "Input file is not specified\n");
@@ -12,6 +16,8 @@ int main(int argc, char **argv){
 		fprintf(stderr, "Unable to open input file '%s'\n", argv[1]);
 		return FILE_ERROR;
 	}
+
+	ret = parse();
 
 	return SUCCESS;
 }

@@ -1,4 +1,6 @@
 #include "ial.h"
+#include "ifj.h"
+#include "scaner.h"
 
 int length(char *s) {
 
@@ -46,7 +48,7 @@ char *sort(char *s) {
 int readInt() {
 
 }
-
+/*
 hTable *htableInit( unsigned long size ) {
 
     hTable *table = malloc( sizeof(hTable) + size * sizeof(table->data[0]) );
@@ -117,4 +119,4 @@ tToken * htableLookupAdd(hTable *table, const char *key)
         table->data[index] = tmp;
 
     return tmp;
-}
+}*/
