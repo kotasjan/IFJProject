@@ -1,5 +1,6 @@
 #include "error.h"
-
+#include "ifj.h"
+#include "ial.h"
 
 int errorFunction(int error){
 

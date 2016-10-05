@@ -1,12 +1,14 @@
 #ifndef SCANER_H
 #define SCANER_H
-#include "ifj.h"
+
 
 typedef struct
 {
-  char * chars;		// Nazev retezce
+  char *chars;		// Nazev retezce
   unsigned length;		// Pocet znaku + koncova 0
-  unsigned alloc_size;	// Pocet alokovanych bajtu
-} token;
+  unsigned allocSize;	// Pocet alokovanych bajtu
+} tToken;
+
+int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
 
 #endif // SCANER_H
