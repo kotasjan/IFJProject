@@ -5,7 +5,7 @@
 typedef struct tList{
 	int typ;
 	tToken token;
-	struct tList *next;
+	struct tList *next;	
 }tList;
 
 typedef struct {
