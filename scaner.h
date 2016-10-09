@@ -33,6 +33,35 @@ typedef enum{
 } state;
 
 enum{
+	IS_DEFAULT = 0,		// vychozi stav KA
+	IS_SIMPLE_ID,		// [a-z] [A-Z] [0-9] _ $
+	IS_FULL_ID,			// simple_id.simple_id
+	IS_SIMPLE_NUMBER,	// [0-9]
+	IS_DECIMAL_NUMBER,	// [0-9].[0-9]
+	IS_EXP_NUMBER,		// [0-9]eE[0-9]
+	IS_EXP_SIGN_NUMBER,	// [0-9]eE+-[0-9]
+	IS_DEC_EXP_NUMBER,	// [0-9].[0-9]eE[0-9]
+	IS_DEC_EXP_SIGN_NUMBER,	// [0-9].[0-9]eE+-[0-9]
+	IS_MULTIPLICATION,	// * */
+	IS_LESS,			// < <=
+	IS_GREATER,			// > >=
+	IS_EXCLAMATION,		// !=   (! rozsireni)
+	IS_ASSIGNMENT,		// = ==
+	IS_SLASH,			// / /* //
+	IS_SINGLE_COMMENT,	// //
+	IS_FULL_COMMENT,	// /*
+	IS_FULL_COMMENT_END,	// */
+	IS_STRING_LITERAL,	// "
+	IS_STRING_LIT_ESCAPE,	// " ... \" \n \\ \t
+	IS_STRING_LIT_ESCAPE_OCT,	// \[001-377]
+	//IS_AND,	// rozsireni &&
+	//IS_OR,	// rozsireni ||
+	IS_PLUS,			// + (++ rozsireni)
+	IS_MINUS,			// - (-- rozsireni)
+} inner_state;
+
+
+enum{
 	INT = 0,
 	DOUBLE = 1,
 	STRING = 2,
