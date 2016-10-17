@@ -1,0 +1,24 @@
+Zápis schůze 17.10.2016
+
+Lexikální analýza:
+- Vrací token, který bude obsahovat:
+	- TYP
+	- atribut (může být buď ukazatel do položku v TS, číslo nebo bude null)
+
+- funkci getToken() se bude předávat parametr (void) * , a ukazatel na aktuální TS
+- načítají se znaky a jakmile se dojde do konečného stavu, vyhodnotí se načtený řetězec (vyhodnotí se, jakého je typu)
+	- pokud je to identifikátor, inicializuje se položka v tabulce symbolů
+	- pokud je to klíčové slovo, vrátí se v tokenu typ keyword
+	- pokud je to konstanta vrátí to LIT_INT nebo LIT_DOUBLE
+
+
+
+Syntaktická analýza:
+- vytvoří tabulku symbolů TS a ukazatel posílá funkci getToken()
+- odkaz na TS se uloží do globálního "zásobníku" (pole)
+- v každém bloku kódu se vytvoří nová TS a její odkaz se posílá LA při každém volání funkce getToken(), dokud neskončí blok
+	- do "zásobníku" (pole) se uloží ukazatel na aktuální TS (nejlokálnější TS)
+	- v případě, že skončí blok, posune se vrchol zásobníku (pole, které se chová jako zásobník - index pole v globální proměnné) na nižší úroveň
+
+Ostatní poznámky:
+- aktualizovat konečný automat
