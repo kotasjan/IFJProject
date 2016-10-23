@@ -22,7 +22,7 @@ int checkSize(tToken *data)
 	return 1;
 }
 
-int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni promenna?
+int getToken(void *result, table * TS){				// je treba FILE * file -> parametr nebo globalni promenna?
 	int state = IS_DEFAULT;
 	int c;
 	int octave = 0;
@@ -56,7 +56,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 				else if (c == '"') state = IS_STRING_LITERAL;					
 				else if (c == '+') state = IS_PLUS;		
 				else if (c == '-') state = IS_MINUS;
-				else if (isspace(c) == 1) state = IS_DEFAULT;
+				else if (isspace(c)) state = IS_DEFAULT;
 
 				else if (isalpha(c) || c == '_' || c == '$')
 				{
@@ -67,7 +67,8 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
-				
+					(data->id)[data->length] = '\0';
+					
 					state = IS_SIMPLE_ID;
 				}
 				
@@ -80,6 +81,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 				
 					state = IS_SIMPLE_NUMBER;
 				}
@@ -148,6 +150,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 				
 					state = IS_STRING_LITERAL;					
 				}
@@ -217,6 +220,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					else if (c == '\\') (data->id)[data->length] = '\\';
 					
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 				
 					state = IS_STRING_LITERAL;
 				}
@@ -278,6 +282,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 						
 						(data->id)[data->length] = octave;
 						(data->length)++;
+						(data->id)[data->length] = '\0';
 											
 						octave_cnt = 0;
 						octave = 0;
@@ -306,6 +311,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 				
 					state = IS_SIMPLE_ID;					
 				}
@@ -318,6 +324,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 				
 					state = IS_FULL_ID;					
 				}
@@ -360,6 +367,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 				
 					state = IS_FULL_ID;					
 				}
@@ -380,6 +388,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 					
 					if (isdigit(c)) state = IS_SIMPLE_NUMBER;
 					else if (c == '.') state = IS_DECIMAL_NUMBER;
@@ -402,6 +411,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 					
 					if (isdigit(c)) state = IS_DECIMAL_NUMBER;
 					else if (c == 'e' || c == 'E') state = IS_DEC_EXP_NUMBER;
@@ -423,6 +433,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 					
 					if (isdigit(c)) state = IS_EXP_NUMBER;
 					else if (c == '-' || c == '+') state = IS_EXP_SIGN_NUMBER;
@@ -444,6 +455,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 					
 					if (isdigit(c)) state = IS_DEC_EXP_NUMBER;
 					else if (c == '-' || c == '+') state = IS_DEC_EXP_SIGN_NUMBER;
@@ -465,6 +477,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 					
 					state = IS_DEC_EXP_SIGN_NUMBER;
 				}			
@@ -485,6 +498,7 @@ int getToken(tToken *data){				// je treba FILE * file -> parametr nebo globalni
 					
 					(data->id)[data->length] = c;
 					(data->length)++;
+					(data->id)[data->length] = '\0';
 					
 					state = IS_EXP_SIGN_NUMBER;
 				}			

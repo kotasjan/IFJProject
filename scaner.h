@@ -76,6 +76,9 @@ typedef struct
   unsigned allocSize;	// Pocet alokovanych bajtu
 } tToken;
 
-int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
+//int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
+
+int getToken(void *result, table * TS); // dle zapisku...
+
 
 #endif // SCANER_H
