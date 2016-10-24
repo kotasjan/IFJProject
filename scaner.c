@@ -13,7 +13,7 @@ int checkSize(tToken *data)
 {
 	if (data->length >= data->allocSize)
 	{
-		data->id = realloc (data->id, sizeof(char) * ((data->allocSize)*2) );
+		data->id = realloc (data->id, sizeof(char) * ((data->allocSize)+REALLOC_SIZE) );
 		if (data->id == NULL)
 		{
 			return -1;
@@ -22,13 +22,24 @@ int checkSize(tToken *data)
 	return 1;
 }
 
-int getToken(void *result, table * TS){				// je treba FILE * file -> parametr nebo globalni promenna?
+int getToken(void *result, table * TS){				// je treba FILE * file . parametr nebo globalni promenna?
 	int state = IS_DEFAULT;
 	int c;
 	int octave = 0;
 	int octave_cnt = 0;
-	int post_number = 0;
 
+	tToken data;				// vnitrni struktura tokenu, pri kazdem zavolani fce se vytvori tento vnitrni token kam se ukladaji nactene znaky (= jmena identifikatoru, konstatnty)
+								// pokud se najde ID tak se nactene znaky (resp. jejich ukazatel?) pouziji jako klic do hash table a vlozi se do ni novy zaznam.
+								// pokud se nacte operator nebo neco jineho tak se pomoci fce free naalokovane misto opet uvolni
+								// pokud se nacte cislo tak se ukazatel na nactene znaky vrati v void *result a ty se pak dekoduji pomoci atoi nebo strtod
+	data.id = malloc(24);
+	data.length = 0;
+	data.allocSize = 24;
+	
+	if (data.id == NULL)
+	{
+		return LEX_ERROR;				// asi vratit neco jineho nez LEX_ERROR...
+	}
 
 	while (1)
 	{     
@@ -37,16 +48,16 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 		switch (state)
 		{
 			case IS_DEFAULT:
-				if (c == '(') return LEFT_BRACKET;
-				else if (c == ')') return RIGHT_BRACKET;
-				else if (c == '[') return LEFT_SQUARE_BRACKET;
-				else if (c == ']') return RIGHT_SQUARE_BRACKET;
-				else if (c == '{') return LEFT_CURLY_BRACKET;
-				else if (c == '}') return RIGHT_CURLY_BRACKET;
-				else if (c == '.') return DOT;
-				else if (c == ',') return COMMA;
-				else if (c == ';') return SEMICOLON;
-				else if (c == '*') return MULTIPLIER;		// */ musi predchazet /*, proto pri IS_DEFAULT jedine return MULTIPLIER
+				if (c == '(') { free(data.id); return LEFT_BRACKET; }
+				else if (c == ')') { free(data.id); return RIGHT_BRACKET; }
+				else if (c == '[') { free(data.id); return LEFT_SQUARE_BRACKET; }
+				else if (c == ']') { free(data.id); return RIGHT_SQUARE_BRACKET; }
+				else if (c == '{') { free(data.id); return LEFT_CURLY_BRACKET; }
+				else if (c == '}') { free(data.id); return RIGHT_CURLY_BRACKET; }
+				else if (c == '.') { free(data.id); return DOT; }
+				else if (c == ',') { free(data.id); return COMMA; }
+				else if (c == ';') { free(data.id); return SEMICOLON; }
+				else if (c == '*') { free(data.id); return MULTIPLIER; }		// */ musi predchazet /*, proto pri IS_DEFAULT jedine return MULTIPLIER
 				
 				else if (c == '<') state = IS_LESS;
 				else if (c == '>') state = IS_GREATER;
@@ -60,28 +71,30 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 
 				else if (isalpha(c) || c == '_' || c == '$')
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 					
 					state = IS_SIMPLE_ID;
 				}
 				
 				else if (isdigit(c))
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 				
 					state = IS_SIMPLE_NUMBER;
 				}
@@ -96,6 +109,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					free(data.id);
 					return LESS;
 				}
 			break;
@@ -105,6 +119,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					free(data.id);
 					return GREATER;
 				}
 			break;
@@ -114,6 +129,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					free(data.id);
 					return EXCLAMATION;
 				}
 			break;
@@ -123,6 +139,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					free(data.id);
 					return ASSIGNMENT;
 				}
 			break;
@@ -133,24 +150,26 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					free(data.id);
 					return DIVISION;
 				}
 			break;
 			
 			case IS_STRING_LITERAL:
-				if (c == EOF) return LEX_ERROR;			// nebo END_OF_FILE?
-				else if (c == '"') return CHAIN;
-				else if (c == '\n') return LEX_ERROR;
+				if (c == EOF) { free(data.id); return LEX_ERROR; }			// nebo END_OF_FILE?
+				else if (c == '"') { free(data.id); return CHAIN; }
+				else if (c == '\n') { free(data.id); return LEX_ERROR; }
 				else if (c != '\\')
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 				
 					state = IS_STRING_LITERAL;					
 				}
@@ -165,6 +184,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					free(data.id);
 					return PLUS;
 				}
 			break;
@@ -174,12 +194,13 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					free(data.id);
 					return MINUS;
 				}
 			break;
 			
 			case IS_SINGLE_COMMENT:
-				if (c == EOF) return END_OF_FILE;					// nebo LEX_ERROR ? viz soubory z wiki
+				if (c == EOF) { free(data.id); return END_OF_FILE; }				// nebo LEX_ERROR ? viz soubory z wiki
 				else if (c == '\n') state = IS_DEFAULT;
 				else
 				{
@@ -188,7 +209,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			break;
 			
 			case IS_FULL_COMMENT:
-				if (c == EOF) return END_OF_FILE;					// nebo LEX_ERROR ? viz soubory z wiki
+				if (c == EOF) { free(data.id); return END_OF_FILE; }				// nebo LEX_ERROR ? viz soubory z wiki
 				else if (c == '*') state = IS_FULL_COMMENT_END;
 				else
 				{
@@ -197,7 +218,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			break;
 			
 			case IS_FULL_COMMENT_END:
-				if (c == EOF) return END_OF_FILE;					// nebo LEX_ERROR ? viz soubory z wiki
+				if (c == EOF) { free(data.id); return END_OF_FILE; }					// nebo LEX_ERROR ? viz soubory z wiki
 				else if (c == '/') state = IS_DEFAULT;
 				else
 				{
@@ -206,21 +227,22 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			break;
 			
 			case IS_STRING_LIT_ESCAPE:
-				if (c == EOF) return LEX_ERROR;
+				if (c == EOF) { free(data.id); return LEX_ERROR; }
 				else if (c == '"' || c == 'n' || c == 't' || c == '\\') 
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					if (c == '"') (data->id)[data->length] = '"';
-					else if (c == 'n') (data->id)[data->length] = '\n';
-					else if (c == 't') (data->id)[data->length] = '\t';
-					else if (c == '\\') (data->id)[data->length] = '\\';
+					if (c == '"') (data.id)[data.length] = '"';
+					else if (c == 'n') (data.id)[data.length] = '\n';
+					else if (c == 't') (data.id)[data.length] = '\t';
+					else if (c == '\\') (data.id)[data.length] = '\\';
 					
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 				
 					state = IS_STRING_LITERAL;
 				}
@@ -231,13 +253,14 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				}
 				else
 				{
+					free(data.id);
 					return LEX_ERROR;
 				}
 			break;
 			
 			
 			case IS_STRING_LIT_ESCAPE_OCT:
-				if (c == EOF) return LEX_ERROR;
+				if (c == EOF) { free(data.id); return LEX_ERROR; }
 				
 				if (octave_cnt == 0)
 				{
@@ -249,6 +272,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 					}
 					else
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 				}
@@ -263,6 +287,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 					}
 					else
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 				}
@@ -273,16 +298,17 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 					{
 						octave += c;
 						
-						if (octave > 256 ) return LEX_ERROR;
+						if (octave > 256 ) { free(data.id); return LEX_ERROR; }
 						
-						if (checkSize(data) == -1)
+						if (checkSize(&data) == -1)
 						{
+							free(data.id);
 							return LEX_ERROR;
 						}
 						
-						(data->id)[data->length] = octave;
-						(data->length)++;
-						(data->id)[data->length] = '\0';
+						(data.id)[data.length] = octave;
+						(data.length)++;
+						(data.id)[data.length] = '\0';
 											
 						octave_cnt = 0;
 						octave = 0;
@@ -290,6 +316,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 					}
 					else
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 				}
@@ -301,30 +328,32 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			break;
 			
 			case IS_SIMPLE_ID:
-				if (c == EOF) return LEX_ERROR;
+				if (c == EOF) { free(data.id); return LEX_ERROR; }
 				else if (isdigit(c) || isalpha(c) || c == '_' || c == '$')
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 				
 					state = IS_SIMPLE_ID;					
 				}
 				else if (c == '.')					// jeste se dohodnout
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 				
 					state = IS_FULL_ID;					
 				}
@@ -332,48 +361,55 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				{
 					ungetc(c, file);
 					
-					if (strcmp(data->id, "int") == 0) return INT;				
-					else if (strcmp(data->id, "double") == 0) return DOUBLE;
-					else if (strcmp(data->id, "String") == 0) return STRING;
-					else if (strcmp(data->id, "void") == 0) return VOID;
+					if (strcmp(data.id, "int") == 0) { free(data.id); return INT; }			
+					else if (strcmp(data.id, "double") == 0) { free(data.id); return DOUBLE; }
+					else if (strcmp(data.id, "String") == 0) { free(data.id); return STRING; }
+					else if (strcmp(data.id, "void") == 0) { free(data.id); return VOID; }
 
 					
-					else if (strcmp(data->id, "boolean") == 0) return DATA_TYPE;	// doplnit do scanner.h
-					else if (strcmp(data->id, "break") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "class") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "continue") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "do") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "else") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "false") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "for") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "if") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "return") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "static") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "true") == 0) return DATA_TYPE;
-					else if (strcmp(data->id, "while") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "boolean") == 0) return DATA_TYPE;	// doplnit do scanner.h + free(data.id);
+					else if (strcmp(data.id, "break") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "class") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "continue") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "do") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "else") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "false") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "for") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "if") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "return") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "static") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "true") == 0) return DATA_TYPE;
+					else if (strcmp(data.id, "while") == 0) return DATA_TYPE;
 					
-					else return IDENTIFIER;
+					else
+					{
+						if (hash_table_is_this_key_already_in_hash_table(TS, data.id) == 1) result = hash_table_get_pointer_to_data(TS, data.id);
+						else result = hash_table_insert_key_and_return_pointer_to_data(TS, data.id);		// nebo vrati pointer na data v parametru,...
+						return IDENTIFIER;
+					} 
 				}
 			break;
 			
 			case IS_FULL_ID:
-				if (c == EOF) return LEX_ERROR;
+				if (c == EOF) return { free(data.id); LEX_ERROR; }
 				else if (isdigit(c) || isalpha(c) || c == '_' || c == '$')
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 				
 					state = IS_FULL_ID;					
 				}
 				else
 				{
 					ungetc(c, file);
+									// vlozit do hash table - nebo ne? a bude se vubec full id rozlisovat?
 					return FULL_IDENTIFIER;		// doplnit do scanner.h?
 				}
 			break;
@@ -381,14 +417,15 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			case IS_SIMPLE_NUMBER:
 				if (isdigit(c) || c == '.' || c == 'e' || c == 'E')
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 					
 					if (isdigit(c)) state = IS_SIMPLE_NUMBER;
 					else if (c == '.') state = IS_DECIMAL_NUMBER;
@@ -397,6 +434,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					result = (void *) data.id;		// a pak v SA pouzit funkci atoi nebo podobne...
 					return NUMBER;				// doplnit do scanner.h?
 				}
 			break;
@@ -404,14 +442,15 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			case IS_DECIMAL_NUMBER:
 				if (isdigit(c) || c == 'e' || c == 'E')
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 					
 					if (isdigit(c)) state = IS_DECIMAL_NUMBER;
 					else if (c == 'e' || c == 'E') state = IS_DEC_EXP_NUMBER;
@@ -419,6 +458,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					result = (void *) data.id;		// a pak v SA pouzit funkci strtod, podporuje parsovani eE+- ...
 					return NUMBER_DEC;				// doplnit do scanner.h?
 				}
 			break;
@@ -426,14 +466,15 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			case IS_EXP_NUMBER:
 				if (isdigit(c) || c == '-' || c == '+')
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 					
 					if (isdigit(c)) state = IS_EXP_NUMBER;
 					else if (c == '-' || c == '+') state = IS_EXP_SIGN_NUMBER;
@@ -441,6 +482,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					result = (void *) data.id;		// a pak v SA pouzit funkci strtod, podporuje parsovani eE+- ...
 					return NUMBER_EXP;				// doplnit do scanner.h?
 				}
 			break;
@@ -448,14 +490,15 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			case IS_DEC_EXP_NUMBER:
 				if (isdigit(c) || c == '-' || c == '+')
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 					
 					if (isdigit(c)) state = IS_DEC_EXP_NUMBER;
 					else if (c == '-' || c == '+') state = IS_DEC_EXP_SIGN_NUMBER;
@@ -463,6 +506,7 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 				else
 				{
 					ungetc(c, file);
+					result = (void *) data.id;		// a pak v SA pouzit funkci strtod, podporuje parsovani eE+- ...
 					return NUMBER_DEC_EXP;				// doplnit do scanner.h?
 				}
 			break;
@@ -470,20 +514,22 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			case IS_DEC_EXP_SIGN_NUMBER:
 				if (isdigit(c))
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 					
 					state = IS_DEC_EXP_SIGN_NUMBER;
 				}			
 				else
 				{
 					ungetc(c, file);
+					result = (void *) data.id;		// a pak v SA pouzit funkci strtod, podporuje parsovani eE+- ...
 					return NUMBER_DEC_EXP_SIGN;				// doplnit do scanner.h?
 				}
 			break;
@@ -491,20 +537,22 @@ int getToken(void *result, table * TS){				// je treba FILE * file -> parametr n
 			case IS_EXP_SIGN_NUMBER:
 				if (isdigit(c))
 				{
-					if (checkSize(data) == -1)
+					if (checkSize(&data) == -1)
 					{
+						free(data.id);
 						return LEX_ERROR;
 					}
 					
-					(data->id)[data->length] = c;
-					(data->length)++;
-					(data->id)[data->length] = '\0';
+					(data.id)[data.length] = c;
+					(data.length)++;
+					(data.id)[data.length] = '\0';
 					
 					state = IS_EXP_SIGN_NUMBER;
 				}			
 				else
 				{
 					ungetc(c, file);
+					result = (void *) data.id;		// a pak v SA pouzit funkci strtod, podporuje parsovani eE+- ...
 					return NUMBER_EXP_SIGN;				// doplnit do scanner.h?
 				}
 			break;

@@ -1,6 +1,8 @@
 #ifndef SCANER_H
 #define SCANER_H
 
+#define REALLOC_SIZE 24
+
 typedef enum{
 
 	LEX_ERROR = 0,
@@ -78,7 +80,8 @@ typedef struct
 
 //int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
 
-int getToken(void *result, table * TS); // dle zapisku...
+
+int getToken(void *result, table * TS); // dle zapisku... HASH_TABLE uz je v ial.h definovana, dodelat!
 
 
 #endif // SCANER_H
