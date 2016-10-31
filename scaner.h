@@ -1,29 +1,27 @@
 #ifndef SCANER_H
 #define SCANER_H
 
-#define REALLOC_SIZE 24
-
 typedef enum{
 
 	LEX_ERROR = 0,
-	END_OF_FILE,
 	IDENTIFIER,
-	COMMA,
+	COMMA,					// specialni symboly od 2
 	SEMICOLON,
+	DOT,
+	END_OF_FILE,
 	LEFT_BRACKET,
 	RIGHT_BRACKET,
 	LEFT_SQUARE_BRACKET,
 	RIGHT_SQUARE_BRACKET,
 	LEFT_CURLY_BRACKET,
 	RIGHT_CURLY_BRACKET,
-	PLUS,
+	PLUS=100,					// aritmeticke operatory od 100
 	MINUS,
 	DIVISION,
 	MULTIPLIER,
-	CHAIN,    // Je to misto stringu protoze ten uz je v enumu pod timhle.
 	INC,
 	DEC,
-	GREATER,
+	GREATER=200,				// logicke operatory od 200
 	NOT_EQUAL,
 	EQUAL,
 	LESS,
@@ -31,7 +29,29 @@ typedef enum{
 	LESS_OR_EQUAL,
 	ASSIGNMENT,
 	EXCLAMATION,
-	DOT,
+	INT=300,					// datove typy od 300
+	DOUBLE,
+	STRING,
+	VOID,
+	BOOLEAN,
+	CHAIN,    					// Je to misto stringu protoze ten uz je v enumu pod timhle.
+	LIT_INT,
+	LIT_DOUBLE,
+	IF=400,						// klicova slova od 400
+	ELSE,
+	WHILE,
+	FOR,
+	DO,
+	BREAK,
+	CONTINUE,
+	RETURN,
+	PRIVATE,
+	PUBLIC,
+	MAIN,
+	CLASS,
+	STATIC,
+	FALSE,
+	TRUE,
 } state;
 
 enum{
@@ -63,13 +83,14 @@ enum{
 } inner_state;
 
 
+/*
 enum{
 	INT = 0,
 	DOUBLE = 1,
 	STRING = 2,
 	VOID = 3,
-
 } status;
+*/
 
 typedef struct
 {
@@ -78,10 +99,6 @@ typedef struct
   unsigned allocSize;	// Pocet alokovanych bajtu
 } tToken;
 
-//int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
-
-
-int getToken(void *result, table * TS); // dle zapisku... HASH_TABLE uz je v ial.h definovana, dodelat!
-
+int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
 
 #endif // SCANER_H

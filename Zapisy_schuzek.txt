@@ -22,3 +22,27 @@ Syntaktická analýza:
 
 Ostatní poznámky:
 - aktualizovat konečný automat
+
+---------------------------------------------------------------------------------------
+
+Zápis schůze 31.10.2016
+
+- přidán soubor testing_scanner - nutno otestovat, zda se vstupní soubor správně rozděluje na lexémy
+
+
+
+Honza:
+- otestovat testing_scanner
+- dodělat LL gramatiku
+
+Pavel:
+- rozdělat parser + hashovací TS
+
+Dominik:
+- dodělat scanner podle posledního .h souboru, podívá se na vestavěné funkce + support na test souboru testing_scanner
+- plně kvalifikovaný identifikátor zpracovat zvlášť
+
+Seky:
+- začít implementovat LL gramatiku (funkce na tvorbu derivačního stromu)
+
+---------------------------------------------------------------------------------------

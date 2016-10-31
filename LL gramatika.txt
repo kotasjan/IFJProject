@@ -1,0 +1,33 @@
+----------------------------------------------------------------
+<start> 			-> 	<class>
+----------------------------------------------------------------
+<class>				->	class classID { <classBody> } <class>
+<class>				->	eps
+----------------------------------------------------------------
+<classBody> 		-> 	static <type> ID <classBodyDec>
+----------------------------------------------------------------
+<classBodyDec>		->	<glo
+function> <classBody>
+----------------------------------------------------------------
+<globalVarDec>		->	eps
+<globalVarDec>		->	= <expr> <nextGlobalVarDec>
+<nextGlobalVarDec>	->	, ID <globalVarDec>
+<nextGlobalVarDec>	-> 	eps
+----------------------------------------------------------------
+<function>			->	<functionDef> { <functionBody> }
+----------------------------------------------------------------
+<functionDef>		->	( <param> )
+----------------------------------------------------------------
+<param>				->	<type> ID <nextParam>
+<param>				->	eps
+<nextParam>			->	, <type> ID <nextParam>
+<nextParam>			->	eps
+----------------------------------------------------------------
+<funcBody>			->	<stat>	<funcBody>
+<funcBody>			->	eps
+----------------------------------------------------------------
+<stat>				->	if ( <expr> ) { <stat> } else { <stat> }
+<stat>				->	while ( <expr> ) { <stat> }
+<stat>				->	<forStatement>
+<stat>				->	id = <expr> ;
+----------------------------------------------------------------
