@@ -1,0 +1,200 @@
+/* Program 1: Vypocet faktorialu (iterativne) */
+class Main {
+
+/* Test datovych typu */
+	static int A32 = 5, _c = 25, $d = 52;
+	static double b_25 = 6/(5*3)+2*Main._c;
+	static String string = "ahoj";
+//	static boolean bool = true;		// toto je navic
+
+/*	test chyboveho stavu  */
+
+//	int b = 5.5;
+//	int c = true;
+//	int d = "Ahoj";
+
+//	String ahoj = 65;
+
+//	boolean = 1;
+//	boolean = "as";
+
+//	int strednik = 5
+
+/*--------------------*/
+
+/* Test deklarace funkce */
+
+	static void run(){
+
+/*	test chyboveho stavu  */
+
+//	zakomentovat funkci run()
+//	nahradit funkci run() za main()
+
+/*-----------------------*/
+
+/* Test lokalni a globalni prommene A32 */
+		int A32 = 6;
+
+		ifj16.print("Plne kvalifikovane Main.A32: ");
+		ifj16.print(Main.A32);
+		ifj16.print("\nLokalni A32: ");
+		ifj16.print(A32);
+
+/*	test chyboveho stavu  */
+
+	//	int Main.A32;
+
+/* -------------------------------------*/
+
+/* Test prirazeni desetinneho cisla s E slozkou */
+
+		double k = 25.500E-2;
+		
+		ifj16.print("\n\n");
+		ifj16.print(k);
+
+		k = 25.500e+2;
+
+		ifj16.print("\n\n");
+		ifj16.print(k);
+
+		k = 25.500e2;
+
+		ifj16.print("\n\n");
+		ifj16.print(k);
+
+/*	test chyboveho stavu  */
+
+	//	k = 25.05.5;
+	//	k = 25.E-102;
+	//	k = 25.0E;
+
+/* ---------------------------------------------*/
+
+/* Test retezcovych literalu */
+
+		String retezec = "Ahoj\n\tSve'te\\\\\"\046\nToto je delsi radek";
+
+/*	test chyboveho stavu  */
+	
+	//	retezec = "\ "";
+	//	retezec = "\999";
+	//	retezec = "
+	//	\999";
+
+/* --------------------------*/
+
+/* Test jednoduchych vyrazu */
+		
+		ifj16.print("\n\n");
+		ifj16.print(k);
+
+		k = Main.b_25 * Main.$d52 + A32;
+
+		ifj16.print("\n\n");
+		ifj16.print(k);
+
+		k = Main.b_25 * (Main.$d52 - A32);
+
+		ifj16.print("\n\n");
+		ifj16.print(k);
+
+		k = (Main.b_25 * Main.$d52) * A32;
+
+		ifj16.print("\n\n");
+		ifj16.print(k);
+
+		k = Main.b_25 / Main.$d52 * A32;
+
+		ifj16.print("\n\n");
+		ifj16.print(k);
+
+		k = Main.b_25 - Main.$d52 + A32;
+
+		ifj16.print("\n\n");
+		ifj16.print(k);
+
+		Main.$d52 = k;
+
+		ifj16.print("\n\n");
+		ifj16.print(Main.$d52);
+
+
+/* -------------------------------------*/
+
+/* Test podminky */
+	
+		if(k<0){
+			ifj16.print("k<0");
+		}else if(k==0){
+			ifj16.print("k=0");
+		}else if(k>0 && k<25){
+			ifj16.print("k>0 && k<25");
+		}else if(k>0 || k<25){
+			ifj16.print("k>0 || k<25");
+		}else if(k>0){
+			ifj16.print("k>0");
+		}else{
+			ifj16.print("nestane se");
+		}
+
+/*	test chyboveho stavu  */
+
+	//	if(k<0) ifj16.print("k<0");
+	//	if(K<0){}
+
+/* ------------- */
+
+
+// KONEC NA str.c. 5
+
+/* Test cyklu 
+
+		int a;
+		a = ifj16.readInt();
+		int vysl;
+		if (a <0) {
+			ifj16.print("Faktorial nelze spocitat!");
+		}else {
+			vysl = 1;
+			while (a > 0) { // nacitani zaporneho cisla nemusite podporovat
+				vysl = vysl * a;
+				a = a - 1;
+			}
+		ifj16.print("vysl je " + vysl + "\n");
+		}
+	}
+}
+
+/* Program 2: Vypocet faktorialu (rekurzivne) */
+class Main {
+
+	static void run(){
+		int a;
+		int vysl;
+		int neg;
+		ifj16.print("Zadejte cislo pro vypocet faktorialu: ");
+		a = ifj16.readInt();
+		if (a < 0) {
+			ifj16.print("Faktorial nelze spocitat!\n");
+		}else{
+			vysl = factorial(a);
+			neg = 0 - vysl;
+			ifj16.print("Vysledek:"+ vysl);
+			ifj16.print("(zaporny:"+ neg+ ")\n");
+		}
+	}
+
+	static int factorial(int n){ // Definice funkce pro vypocet faktorialu
+		int temp_result;
+		int decremented_n = n - 1;
+		if (n < 2) {
+			return 1;
+		}else{
+			temp_result = factorial(decremented_n);
+			temp_result = n*temp_result;
+			return temp_result;
+		}
+	}
+}
