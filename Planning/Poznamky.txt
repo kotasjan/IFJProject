@@ -1,0 +1,16 @@
+************************************************************************************
+-------------------------------------05.11.2016-------------------------------------
+- Vytvořit nový ENUM na vracení chybových stavů
+- Ukazatel "file" na vstupní soubor předávat přes globální proměnnou
+- Odstranit IS_FULL_ID, plně kvalifikovaný identifikátor se bude skládat z:
+	IS_SIMPLE_ID . IS_SIMPLE_ID
+- Implementovat ENUMy, které byly přidány v nové verzi scanneru
+- Upravit scanner.h - přidat to co bylo v předchozí verzi a přepsalo se novou verzí
+- Hashovací tabulka - co tam bude? v jaké formě? atd.
+- Dohodnout se na úpravě čísla (jak ukládat čísla??)
+- V scanneru.c v case "IS_SIMPLE_NUMBER" je chyba:
+	"-" nebo "+" mohou být v exp části pouze jednou - hned za "E" nebo "e"
+	např. 48.51E-+60 je chyba
+- Vytvořit testovací soubor se všemi možnými stavy na test LA
+------------------------------------------------------------------------------------
+************************************************************************************
