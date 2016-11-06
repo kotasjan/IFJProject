@@ -57,13 +57,12 @@ typedef enum{
 enum{
 	IS_DEFAULT = 0,		// vychozi stav KA
 	IS_SIMPLE_ID,		// [a-z] [A-Z] [0-9] _ $
-	IS_FULL_ID,			// simple_id.simple_id
 	IS_SIMPLE_NUMBER,	// [0-9]
 	IS_DECIMAL_NUMBER,	// [0-9].[0-9]
 	IS_EXP_NUMBER,		// [0-9]eE[0-9]
-	IS_EXP_SIGN_NUMBER,	// [0-9]eE+-[0-9]
+	IS_EXP_AFTER_SIGN_NUMBER,	// [0-9]eE+-[0-9]
 	IS_DEC_EXP_NUMBER,	// [0-9].[0-9]eE[0-9]
-	IS_DEC_EXP_SIGN_NUMBER,	// [0-9].[0-9]eE+-[0-9]
+	IS_DEC_EXP_AFTER_SIGN_NUMBER,	// [0-9].[0-9]eE+-[0-9]
 	IS_MULTIPLICATION,	// * */
 	IS_LESS,			// < <=
 	IS_GREATER,			// > >=
@@ -75,7 +74,9 @@ enum{
 	IS_FULL_COMMENT_END,	// */
 	IS_STRING_LITERAL,	// "
 	IS_STRING_LIT_ESCAPE,	// " ... \" \n \\ \t
-	IS_STRING_LIT_ESCAPE_OCT,	// \[001-377]
+	IS_STRING_LIT_ESCAPE_OCT_1,	// \[0xx-3xx]			celkove [001-377]
+	IS_STRING_LIT_ESCAPE_OCT_2, // \[x0x-x7x]
+	IS_STRING_LIT_ESCAPE_OCT_3, // \[xx1-xx7]
 	//IS_AND,	// rozsireni &&
 	//IS_OR,	// rozsireni ||
 	IS_PLUS,			// + (++ rozsireni)
@@ -99,6 +100,10 @@ typedef struct
   unsigned allocSize;	// Pocet alokovanych bajtu
 } tToken;
 
-int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
+//int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
+
+int getToken(void *result, table * TS);
+
+
 
 #endif // SCANER_H
