@@ -120,16 +120,42 @@ class Main {
 		ifj16.print("\n\n");
 		ifj16.print(Main.$d52);
 
+		String druhyRetezec = "druhej retez";
+
+		retezec = retezec + druhyRetezec;
+
+		retezec = "ahoj" + "svete";
+
+		retezec = "ahoj" + "svete" + "!";
+
+		retezec = "ahoj" + k;	// k je konvertovano na String
+
+/* rozsireni boolean */
+
+	//	boolean bool = k <= 5;
+
+/* ----------------- */
+
+/*	test chyboveho stavu  */
+
+	//	k = 25 + Main.$d52 = 5;
+	//	Main.string = k;
+	//	retezec = k * retezec;
+	//	int vysl = k / retezec;
+	// 	retezec = "ahoj" * "svete" - "!";
+
+	//	boolean stav = k<5<6;
 
 /* -------------------------------------*/
 
+
 /* Test podminky */
 	
-		if(k<0){
+		if(k<=0){
 			ifj16.print("k<0");
 		}else if(k==0){
 			ifj16.print("k=0");
-		}else if(k>0 && k<25){
+		}else if(k>=0 && k<25){
 			ifj16.print("k>0 && k<25");
 		}else if(k>0 || k<25){
 			ifj16.print("k>0 || k<25");
@@ -139,36 +165,217 @@ class Main {
 			ifj16.print("nestane se");
 		}
 
+		if(5!=2){
+			ifj16.print("5 se nerovna 2");
+		}else{}
+
 /*	test chyboveho stavu  */
 
 	//	if(k<0) ifj16.print("k<0");
-	//	if(K<0){}
+	//	if(k<0){}
+	//	if(k<0){ int bla = 4;}
+	//	if(k<0){ else {}} 
+	//	if(k<5<4){} else {}
 
 /* ------------- */
 
+/* Test cyklu while() */
 
-// KONEC NA str.c. 5
+		while(k>0){
+			k = k - 1;
+		}
 
-/* Test cyklu 
-
-		int a;
-		a = ifj16.readInt();
-		int vysl;
-		if (a <0) {
-			ifj16.print("Faktorial nelze spocitat!");
-		}else {
-			vysl = 1;
-			while (a > 0) { // nacitani zaporneho cisla nemusite podporovat
-				vysl = vysl * a;
-				a = a - 1;
+		while(1){
+			if(k>5){
+				break;
 			}
-		ifj16.print("vysl je " + vysl + "\n");
+			k = k + 1;
+		}
+
+	/* test s doplnky ++ a boolean */
+		while(true){
+			if(k<0){
+				break;
+			}
+			k--;
+		}	
+
+	//	while(if(5>0)){ k = 0; }
+	//	while(1) k = k+1;
+
+/* ------------------ */
+
+/* Test volani vestavene nebo uzivatelem definovane funkce */
+
+		k = square(k);
+		pisAhoj();
+		int pocetAcek = 20;
+		pisAcka(pocetAcek);
+
+		// volani vzdalene funkce
+
+		int fact = SampleClass.factorial(5);
+
+/*	test chyboveho stavu  */
+
+	//	pisAhoj(pocetAcek);
+	//	int fact2 = SampleClass.factorial(5, 10);
+	//	pisAcka();
+	//	SampleClass.factorial(5, 10);
+	//	k = chybnaMetoda(k);  // odkomentovat metodu chybnaMetoda()
+	//	k = vracimBoolean();  // odkomentovat metodu vracimBoolean() + pridavek boolean
+	//	k = vracimString();	  // odkomentovat metodu vracimString()
+	//	k = pisAhoj();
+
+/* ------------------------------------------------------- */
+		
+
+/* Test test relačních operátorů operátorů */
+	
+		int a = 5, b = 6, c = 7;
+
+		if(a == b){
+			a = b;
+		}else if(a != b){
+			b = a;
+		}else if(a < c){
+			c = a;
+		}else if(a > c){
+			a = a - 1;
+		}else if(a <= c){
+			c = 7;
+		}else if (a >= b){
+			a = b;
+		}else{
+			c = a;
+		}
+
+/* --------------------------------------- */
+
+/* Test vestavenych funkci pro nacitani a vypis termu */
+
+		int intProm = readInt();
+		double  doubleProm = readDouble();
+		String stringProm = readString();
+
+		print(intProm);
+		print(doubleProm);
+		print(stringProm);
+
+		print(intProm + doubleProm + stringProm);
+
+/* Test chybovych stavu */
+	
+	//	intProm = readInt(intProm);
+	//	doubleProm = readDouble(doubleProm);
+	//	stringProm = readString(stringProm);
+
+/* -------------------- */
+
+
+/* -------------------------------------------------- */
+
+/* Test vestavenych funkci pro praci s retezci */
+
+		int delkaRetezce = length("Ahoj");
+		print(delkaRetezce);
+
+		int delkaRetezce = length("x\n\t\\z");
+		print(delkaRetezce);
+
+		String subString = substr("Ahoj svete!", 2, 8);
+		print(subString);
+
+		int comp = compare("Ahoj", "Ahoj");
+		print(comp);
+		comp = compare("Ahoy", "Ahoj");
+		print(comp);
+
+		int fInt = find("s", "askos");
+		print(fInt);
+		fInt = find("s", "aladin");
+
+		String serazRetez = sort("zskajdbcyw");
+		print(serazRetez);
+
+
+/* Test chybovych stavu */
+		
+		delkaRetezce = length("Ahoj", 1);
+
+
+		subString = substr("asd", 2);
+
+
+/* -------------------- */
+
+
+/* ------------------------------------------- */
+
+
+	}
+/* Test prikazu return */
+
+	static void pisAhoj (){
+		ifj16.print("Ahoj");
+		return;
+		ifj16.print("Toto se neprovede");
+	}
+
+	static double square (double a){
+		return k*k;
+	}
+
+	static String vracimString (){
+		return "ahoj";
+	}
+
+/* ------------------- */
+
+	static void pisAhoj (){
+		ifj16.print("Ahoj");
+	}
+
+	static void pocetAcek (int i){
+		while(i){
+			ifj16.print("A");
+			i = i - 1;
 		}
 	}
+
+/* nadstavba boolean
+
+	static boolean vracimBoolean (){
+		return true;
+	}
+
+*/
+
+
+/*
+
+	static double chybnaMetoda(double a){
+		k*k;
+	}
+
+*/
+
+
+
 }
 
+/* Test chyby pro vytvoreni funkce IFJ16 */
+
+/*
+class IFJ16{
+
+}
+*/
+
+/* ------------------------------------- /*
+
 /* Program 2: Vypocet faktorialu (rekurzivne) */
-class Main {
+class SampleClass {
 
 	static void run(){
 		int a;
@@ -198,3 +405,6 @@ class Main {
 		}
 	}
 }
+
+
+// KONEC na strane 8
