@@ -1,10 +1,15 @@
 #ifndef SCANER_H
 #define SCANER_H
+#include "ial.h"
+#include "ifj.h"
+#include <stdlib.h>
+#include <stdio.h>
+#define REALLOC_SIZE 20
 
 typedef enum{
 
-	LEX_ERROR = 0,
-	IDENTIFIER,
+	IDENTIFIER = 0,
+	FULL_IDENTIFIER,
 	COMMA,					// specialni symboly od 2
 	SEMICOLON,
 	DOT,
@@ -58,6 +63,7 @@ enum{
 	IS_DEFAULT = 0,		// vychozi stav KA
 	IS_SIMPLE_ID,		// [a-z] [A-Z] [0-9] _ $
 	IS_SIMPLE_NUMBER,	// [0-9]
+	IS_FULL_ID,
 	IS_DECIMAL_NUMBER,	// [0-9].[0-9]
 	IS_EXP_NUMBER,		// [0-9]eE[0-9]
 	IS_EXP_AFTER_SIGN_NUMBER,	// [0-9]eE+-[0-9]
@@ -93,16 +99,21 @@ enum{
 } status;
 */
 
-typedef struct
+typedef struct token
 {
-  char *id;		// Nazev retezce
-  unsigned length;		// Pocet znaku + koncova 0
-  unsigned allocSize;	// Pocet alokovanych bajtu
+  char *id;    // Nazev retezce
+  unsigned length;      // Pocet znaku + koncova 0
+  unsigned allocSize;   // Pocet alokovanych bajtu
+  state type;
 } tToken;
 
 //int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
+//typedef int table;
+errCode getToken(tToken *data);
 
-int getToken(void *result, table * TS);
+void setFile(FILE *fp);
+
+
 
 
 
