@@ -2,6 +2,8 @@
 #include "ial.h"
 #include "scaner.h"
 
+FILE *fp;
+
 int main(int argc, char **argv){
 
 	int ret;
@@ -11,13 +13,16 @@ int main(int argc, char **argv){
 		return FILE_ERROR;
 	}
 
-	FILE *fp;
+	
 	if(!( fp = fopen(argv[1], "r") ) ) {
 		fprintf(stderr, "Unable to open input file '%s'\n", argv[1]);
 		return FILE_ERROR;
 	}
 
+	setFile(fp);
+
 	ret = parse();
 
-	return SUCCESS;
+
+	return ret;
 }

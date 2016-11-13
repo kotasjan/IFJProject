@@ -7,9 +7,9 @@
 #include <stdbool.h>
 
 
-enum {
+typedef enum {
 	SUCCESS             = 0,
-	LEXICAL_ERROR       = 1,
+	LEX_ERROR           = 1,
 	SYNTAX_ERROR        = 2,
 	SEM_ERROR           = 3,
 	SEM_TYPE_ERROR      = 4,
@@ -20,7 +20,7 @@ enum {
 	OTHER_RNT_ERROR     = 10,
 	INTERNAL_ERROR      = 99,
 	FILE_ERROR          = 99,
-};
+} errCode;
 
 
 #endif // IFJ_H
