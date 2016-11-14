@@ -1,0 +1,45 @@
+class Main
+{
+
+   static void run()
+   {
+
+      WIN.x = 5;
+
+   }
+/*
+   static int test(int b, int y, double r)
+   {
+
+      int r = 4 + 5 *9;
+      if(expr){}else{}
+
+      while(expr)
+      {
+
+      }
+
+      do
+      {
+
+      }while(expr);
+
+      int a;
+      a(a,b,c);
+
+
+      a();
+
+      a(a);
+   }
+
+*/
+
+
+}
+
+class WIN{
+   static int x;
+
+}
+
