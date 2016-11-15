@@ -102,7 +102,7 @@ int tsInsert ( table* TS, char *key, void *data ) {
         if(!tmp)
             return 1;
         tmp->key = key;
-        tmp->data = data; 
+        tmp->dataPtr = data; 
         int hash = hashFunction(key, TABLE_SIZE);
         if((*TS)[hash])
         {
@@ -127,7 +127,7 @@ void* tsRead ( table* TS, char *key ) {
    }
 }
 
-
+/*
 #include "debug.h"
 void printTSa(table *TS)
 {
@@ -141,9 +141,9 @@ void printTSa(table *TS)
          while(item)
          {
             printf("CLASS: %s\n", (*TS)[i]->key);
-            tClass *trida = item->data;
+            tClass *trida = item->classData;
             printf("tttt %s\n",trida->name);
-            table *class = trida->data;
+            table *class = trida->symbolTable;
             for(int j = 0; j < 100; j++)
             {
 
@@ -151,11 +151,11 @@ void printTSa(table *TS)
                {
                   if((*class)[j]->func){
                      printf("Function: %s\n", (*class)[j]->key);
-                     printFunction((*class)[j]->data);
+                     //printFunction((*class)[j]->classData);
                   }
                   else
                   {
-                     tVar *var = (*class)[j]->data;
+                     tVar *var = (*class)[j]->classData;
                      debugVar("Variable Name: %s\n", var->id);
                      debugVar("Variable type: %s\n", var->type == 300 ? "int" : var->type == 301 ? "double" : var->type == 302 ? "string" : "void" );
                      debugVar("Variable init: %s\n", var->init ? "true" : "false");
@@ -222,12 +222,12 @@ void test()
    param->id = "n";
    param->type = TYPE_INT;
 
-   result = tsInsert (class->data, func->name, func);
+   result = tsInsert (class->symbolTable, func->name, func);
    if(result == 1) return 1;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return 1; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   tList *data = tsRead(class->data, func->name);
+   tList *data = tsRead(class->symbolTable, func->name);
    if(data)
       data->func = true;
     //  printFunction(func);
@@ -239,14 +239,14 @@ void test()
          var->type = TYPE_STRING;
          var->init = true;
 
-         result = tsInsert (class->data, var->id,var);
+         result = tsInsert (class->symbolTable, var->id,var);
          if(result == 1) return 1;
          else if(result == 2) { debug("%s %s\n", "Redifined var", ""); return 1; }
          else debug("%s %s %s\n", "variable", var->id, "added to ST");
 
 
 
-        tList *dataa = tsRead(class->data, var->id);
+        tList *dataa = tsRead(class->symbolTable, var->id);
             if(dataa)
                dataa->func = false;
 

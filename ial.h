@@ -5,19 +5,21 @@
 
 #define TABLE_SIZE 100
 
+
 typedef enum{
    TYPE_INT = 300,
    TYPE_DOUBLE = 301,
    TYPE_STRING = 302,
    TYPE_VOID = 303,
-} varType;
+   TYPE_UNDEF = -1,
+} tType;
 
 
 
 typedef struct funcParam
 {
    char *id;
-   varType type;
+   tType type;
    struct funcParam *nextParam;
 } tFuncParam;
 
@@ -25,15 +27,17 @@ typedef struct
 {
    char *name;
    unsigned paramCnt;
-   varType retType;
+   tType retType;
    tFuncParam *param;
+   bool isDeclared;
 } tFunc;
 
 typedef struct 
 {
    char *id;
-   varType type;
+   tType type;
    bool init;
+   bool isDeclared;
 } tVar;
 
 
@@ -41,8 +45,9 @@ typedef struct tList{
    
    char *key;
    bool func;
-   void *data;
+   void *dataPtr;
    struct tList *next;  
+
 } tList;
 
 
@@ -51,7 +56,8 @@ typedef struct tList* table[TABLE_SIZE];
 typedef struct 
 {
    char *name;
-   table data;
+   table symbolTable;
+   bool isDeclared;
 } tClass;
 
 
