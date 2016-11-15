@@ -1,0 +1,16 @@
+************************************************************************************
+-------------------------------------16.11.2016-------------------------------------
+
+Poznamky k testum LA:
+- nacitani retezcu uvnitr "" je spatne
+- vraci lit_int a lit_double namisto int a double
+- znamenko porovnani < zlobi 
+- retezcove literaly vypisovat jako chain -- upraveny_text
+
+- upravit aktualni testing_scanner.c podle konvence v vzor_vystupu_LA.txt
+- vystup z testing_scanner.c ukladat do souboru vystup.txt
+- aktualni vystup diffcheckeru zde: https://www.diffchecker.com/Qy20DOAQ
+  (vlevo vzorovy soubor vzor_vystupu_LA a vpravo vystup z konzole)
+
+------------------------------------------------------------------------------------
+************************************************************************************
