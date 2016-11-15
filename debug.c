@@ -1,7 +1,88 @@
 #include "debug.h"
 #include "scaner.h"
 #include "ifj.h"
+#include "ial.h"
 
+void printErrCode(int code)
+{
+   switch (code)
+   {
+      case SUCCESS: break;     
+      case LEX_ERROR: debug("LEX_ERROR - %d\n", code); break;     
+      case SYNTAX_ERROR: debug("SYNTAX_ERROR - %d\n", code); break;      
+      case SEM_ERROR: debug("SEM_ERROR - %d\n", code); break;      
+      case SEM_TYPE_ERROR: debug("SEM_TYPE_ERROR - %d\n", code); break;      
+      case SEM_OTHER_ERROR: debug("SEM_OTHER_ERROR - %d\n", code); break;       
+      case INPUT_ERROR: debug("INPUT_ERROR - %d\n", code); break;      
+      case UNINITIALIZED_ERROR: debug("UNINITIALIZED_ERROR - %d\n", code); break;  
+      case DIV_ERROR: debug("DIV_ERROR - %d\n", code); break;      
+      case OTHER_RNT_ERROR: debug("OTHER_RNT_ERROR - %d\n", code); break;       
+      case INTERNAL_ERROR: debug("INTERNAL_ERROR - %d\n", code); break;      
+   }
+}
+
+void printFunction(tFunc *func)
+{
+   debugFunc("Function name: %s\n", func->name);
+   debugFunc("Function retType: %s\n", func->retType == TYPE_INT ? "int" : func->retType == TYPE_DOUBLE ? "double" : func->retType == TYPE_STRING ? "String" : "void" );
+   debugFunc("Function paramCnt: %u\n", func->paramCnt);
+   tFuncParam *tmp = func->param;
+   int i = 0;
+   while(tmp)
+   {
+      debugFunc("Function param %d: %s %s\n", i++, \
+         tmp->type == TYPE_INT ? "int" : tmp->type == TYPE_DOUBLE ? "double" : tmp->type == TYPE_STRING ? "string" : "void", tmp->id);
+      tmp = tmp->nextParam;
+   }
+}
+
+void printTS(table *TS)
+{
+   // 100 = TABLE_SIZE
+   tList *item;
+   for(int i = 0; i < 100; i++)
+   {
+      if((*TS)[i])
+      {
+         item = (*TS)[i];
+         while(item)
+         {
+            printf("CLASS: %s\n", (*TS)[i]->key);
+            tClass *t = item->dataPtr;
+            if(!t->isDeclared){
+               printf("neni deklarovana class %s\n",(*TS)[i]->key );
+               exit(1);
+            }
+            table *class = t->symbolTable;
+            for(int j = 0; j < 100; j++)
+            {
+
+               if((*class)[j])
+               {
+                  if((*class)[j]->func){
+                     
+                     printf("Function: %s\n", (*class)[j]->key);
+                     printFunction((*class)[j]->dataPtr);
+                  }
+                  else
+                  {
+                     tVar *var = (*class)[j]->dataPtr;
+                     printf("Variable: %s\n", (*class)[j]->key);
+                     debugVar("Variable Name: %s\n", var->id);
+                     debugVar("Variable type: %s\n", var->type == TYPE_INT ? "int" : var->type == TYPE_DOUBLE ? "double" : var->type == TYPE_STRING ? "string" : "void" );
+                     debugVar("Variable init: %s\n", var->init ? "true" : "false");
+                  }
+
+               }
+            }
+            item = item->next;
+         }
+
+      }
+
+   }
+
+}
 
 char *printTok(tToken *token)
 {

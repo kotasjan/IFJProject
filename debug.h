@@ -32,5 +32,8 @@
 
 #endif
 char *printTok(tToken *token);
+void printTS(table *TS);
+void printFunction(tFunc *func);
+void printErrCode(int code);
 
 #endif
