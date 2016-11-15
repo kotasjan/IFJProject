@@ -3,6 +3,7 @@
 #include "ial.h"
 #include "scaner.h"
 #include "debug.h"
+#include "ifj16Func.h"
 #include <string.h>
 
 table *globalTS = NULL;
@@ -14,6 +15,8 @@ int parse()
    table TS;
    tsInit(&TS);
    globalTS = &TS;
+
+   if ((result = addIFJ16(&TS))) { return result; }
 
    if ((result = getToken(&token))) { debug("%s\n", "Chyba v prvnim tokenu"); return result; }
    if ((result = prog(&TS))) { return result; }
@@ -200,6 +203,31 @@ int tsCheckVarFunc(table *TS, char *id, bool isFunc)
 
 int boolExp()
 {
+   int result;
+
+   switch (token.type)
+   {
+      default:
+      {
+         int bracket = 1;
+         while(token.type != RIGHT_BRACKET)
+         {
+            if(token.type == LEFT_BRACKET) { bracket++; }
+            if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }   
+            if(token.type == RIGHT_BRACKET) {
+               while(token.type == RIGHT_BRACKET)
+               {
+                  bracket--; 
+                  if(bracket) if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; } 
+                  if(!bracket) break;
+               }  
+            }    
+         }
+         return result;
+      }
+   }
+
+   return SYNTAX_ERROR;
 
 }
 
@@ -434,6 +462,31 @@ int tsInsertFunction(table *TS, tFunc *func)
 
 int expression()
 {
+   int result;
+
+   switch (token.type)
+   {
+      default:
+      {
+         int bracket = 1;
+         while(token.type != RIGHT_BRACKET)
+         {
+            if(token.type == LEFT_BRACKET) { bracket++; }
+            if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }   
+            if(token.type == RIGHT_BRACKET) {
+               while(token.type == RIGHT_BRACKET)
+               {
+                  bracket--; 
+                  if(bracket) if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; } 
+                  if(!bracket) break;
+               }  
+            }    
+         }
+         return result;
+      }
+   }
+
+   return SYNTAX_ERROR;
 
 }
 
