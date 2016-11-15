@@ -46,3 +46,38 @@ Seky:
 - začít implementovat LL gramatiku (funkce na tvorbu derivačního stromu)
 
 ---------------------------------------------------------------------------------------
+
+Zápis schůze 07.11.2016
+
+- vyřešit v LL gramatice ID pro plně kvalifikovaný identifikátor
+
+Honza:
+- dodělat testovací soubor a připravit výstupy k testům
+- precedenční tabulka
+(dokumentace)
+
+Michal:
+- LL gramatika
+- začít implementovat LL gramatiku
+
+Dominik:
+- dodělat LA
+- začít implementovat vestavěné funkce
+
+---------------------------------------------------------------------------------------
+
+Zápis schůze 14.11.2016
+
+- dodělat maximalistickou verzi LA (včetně rozšíření)
+
+Honza:
+- testovat LA + LL gramatiku
+
+Michal:
+- vytvořit precedenční analýzu
+
+Dominik:
+- implementovat vestavěné funkce
+
+Pavel:
+- dodělat parser
