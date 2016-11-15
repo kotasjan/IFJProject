@@ -557,17 +557,17 @@ int getToken(tToken *data){				// je treba FILE * file parametr nebo globalni pr
 }// Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".
 char *printTok(tToken *token);
 
-char * pole[1000] = {"ìd","full id",",",";",".","eof","(",
+char * pole[1000] = {"id","full_id",",",";",".","eof","(",
 ")","[","]","{","}","+","-","/","*","++","--",
-">","!=","==","<",">=","<=","=","!","int", "double", "string",
-"void", "boolean","chain", "LIT int", "lit double","if", "else",
+">","!=","==","<",">=","<=","=","!","int", "double", "String",
+"void", "boolean","chain", "lit_int", "lit_double","if", "else",
 "while","for","do","break","continue","return","private", "public",
 "main", "class", "static", "false", "true"};
 
 int main(int argc, char ** argv)
 {
 tToken token;
-file = fopen("soubor.txt", "r");
+file = fopen("soubor_test.txt", "r");
 if (file == NULL) { printf("fail to open file"); exit(5); }
 
 while(token.type != END_OF_FILE){
