@@ -1,7 +1,7 @@
 CFLAGS = -g -std=c99 -Wall -Wextra -pedantic -w -O3 -DDEBUG
 CC = gcc
 TARGET = prekladac
-SOURCES = ial.h  scaner.h ifj.h parser.h debug.h
+SOURCES = ial.h  scaner.h ifj.h debug.h parse_new.h
 OBJECTS = $(SOURCES:.h=.o)
 
 all: $(TARGET)
@@ -22,6 +22,9 @@ scaner.o: scaner.c scaner.h debug.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 parser.o: parser.c parser.h ial.h debug.h
+	$(CC) $(CFLAGS) -c $< -o $@
+
+parse_new.o: parse_new.c parse_new.h ial.h debug.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 
