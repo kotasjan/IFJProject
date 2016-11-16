@@ -2,89 +2,13 @@
 #include "scaner.h"
 #include "expr.h"
 #include "debug.h"
+#include "ifj.h"
 
-typedef struct expStack
-{
-   char data;
-   struct expStack *next;
-} tExpStack;
-
-tExpStack *zasobnik;
+struct expStack *zasobnik;
 tToken token;
 
-char giveTok(tToken *token){
-switch(token->type)
-   {
-      case FULL_IDENTIFIER:
-      case IDENTIFIER:
-         return 'p';
-      case STRING:
-      case CHAIN:   
-         return 's';
-      case INT:           
-      case LIT_INT:
-         return 'i';
-      case DOUBLE:
-      case LIT_DOUBLE:
-         return 'd';
-       case LEFT_BRACKET:
-         return '(';
-      case RIGHT_BRACKET:
-         return ')';
-      case PLUS: 
-         return '+';
-      case MINUS:
-         return '-';
-      case DIVISION:
-         return '/';
-      case MULTIPLIER:
-         return '*';
-      case GREATER_OR_EQUAL:
-         return 'g';
-      case LESS_OR_EQUAL:
-         return 'o';
-      case NOT_EQUAL:
-         return 'n';
-      case EQUAL:
-         return 'e';
-      case LESS:
-         return '<';
-      case GREATER:
-         return '>';
-         
 
-
-}
-}
-
-
-
-
-
-const char PrecedencniTabulka[VELIKOST_TABULKY][VELIKOST_TABULKY]={
-
-/*          */{'Q','+','-','*','/','<','>','o','g','e','n','i','d','s','p','(',')','$'},
-/*	   +     */{'+','>','>','<','<','>','>','>','>','>','>','<','<','<','>','>','>','>'},
-/*	   -     */{'-','>','>','<','<','>','>','>','>','>','>','-','<','<','>','>','>','>'},
-/*	   *     */{'*','>','>','>','>','>','>','>','>','>','>','-','<','<','>','>','>','>'},
-/*	   /     */{'/','>','>','>','>','>','>','>','>','>','>','-','<','<','>','>','>','>'},
-/*	   <     */{'<','<','<','<','<','-','-','-','-','-','-','-','<','<','>','>','>','>'},
-/*	   >     */{'>','<','<','<','<','-','-','-','-','-','-','-','<','<','>','>','>','>'},
-/*	   <=    */{'o','<','<','<','<','-','-','-','-','-','-','-','<','<','>','>','>','>'},
-/*	   >=    */{'g','<','<','<','<','-','-','-','-','-','-','-','<','<','>','>','>','>'},
-/*	   ==    */{'e','<','<','<','<','-','-','-','-','-','-','-','<','<','>','>','>','>'},
-/*	   !=    */{'n','<','<','<','<','-','-','-','-','-','-','-','<','<','>','>','>','>'},
-/*	   int   */{'i','-','-','-','-','-','-','-','-','-','-','-','-','=','-','-','>','>'},
-/*    double*/{'d','-','-','-','-','-','-','-','-','-','-','-','-','=','-','-','>','>'},
-/*    string*/{'s','-','-','-','-','-','-','-','-','-','-','-','-','=','-','-','>','>'},
-/*	   i     */{'p','>','>','>','>','>','>','>','>','>','>','-','-','-','>','>','>','>'},
-/*	   (     */{'(','<','<','<','<','<','<','<','<','<','<','<','<','<','=','-','>','>'},
-/*	   )     */{')','>','>','>','>','>','>','>','>','>','>','-','<','-','>','>','>','>'},
-/*	   $     */{'$','<','<','<','<','<','<','<','<','<','<','<','<','<','-','P','>','>'},
-};
-
-
-void stackInit(){
+int stackInit(){
 	struct expStack *tmp=(struct expStack*)malloc(sizeof(struct expStack));
 	if(tmp==NULL){
 		return INTERNAL_ERROR;
@@ -93,11 +17,12 @@ void stackInit(){
 		tmp->data='$';
 		tmp->next=zasobnik;
 		zasobnik=tmp;
+      return SUCCESS;
 
 	}
 }
 
-void push(int znacka){
+int push(int znacka,struct expStack *pom){
 	struct expStack *tmp=(struct expStack*)malloc(sizeof(struct expStack));
    if(tmp==NULL){
 		return INTERNAL_ERROR;
@@ -110,41 +35,114 @@ void push(int znacka){
    
    if(znacka==1){
       tmp->data='<';
+      tmp->next=pom;
+      if(pom==zasobnik){
+         zasobnik=tmp;
+      }
+      else{
+         printf("Ted by se to hodilo \n\n");
+
+         zasobnik->next=tmp;
+      }
+      
+   }
+
+   if(znacka==2){
+      tmp->data='E';
       tmp->next=zasobnik;
       zasobnik=tmp;
    }
-
+   return SUCCESS;
 }
 
 
-void pop(){
-	struct expStack *tmp=zasobnik;
-	zasobnik=zasobnik->next;
-	free(tmp);
+int pop(){
+   struct expStack *tmp=zasobnik;
+   int i=0;
+   int y=0;
+   int vysledek;
+   while(zasobnik->data!='<'){
+      i++;
+      zasobnik=zasobnik->next;
+   } 
+   zasobnik=tmp;
+   char pole[i+1];
+   while(zasobnik->data!='<'){
+      pole[y]=zasobnik->data;
+      y++;
+      struct expStack *tmp=zasobnik;
+      zasobnik=zasobnik->next;
+      free(tmp);
+   }
+   tmp=zasobnik;
+   zasobnik=zasobnik->next;
+   free(tmp);
+   pole[y]='\0';
+   if ((vysledek=strcmp(pole,"p"))==0) push(2,zasobnik);
+   else if ((vysledek=strcmp(pole,"E+E"))==0) push(2,zasobnik);
+   else if ((vysledek=strcmp(pole,"E-E"))==0) push(2,zasobnik);
+   else if ((vysledek=strcmp(pole,"E*E"))==0) push(2,zasobnik);
+   else if ((vysledek=strcmp(pole,"E/E"))==0) push(2,zasobnik);
+   else if ((vysledek=strcmp(pole,"E("))==0) push(2,zasobnik);
+   else{
+printf("BOHUZEL \n"); return SYNTAX_ERROR;
+   }     
+   vypis_zasobniku();
+   
+   return SUCCESS;
 }
-int _boolexpression(){
+int boolexpression(){
       int result;
 }
-int _expression(){
+int expression(){
 		int result;
-   		stackInit();
-         co_delat();
-   		
+      printf("KOKOS\n");
+   	if ((result = stackInit())) { return result; }
+      if ((result = co_delat())) { return result; }
+   	return result;
          
 }
 
-void co_delat(){
+struct expStack* nejblizsi_terminal(){
+   struct expStack *vys=zasobnik; 
+   while(vys!=NULL){
+      switch(vys->data){
+         case 'p':
+         case '$':
+         case '+':
+         case '-':
+         case '*':
+         case '/': 
+         case '(':
+         case ')':
+         
+         return vys;
+         break;
+         default: break;
+      }
+      vys=vys->next;
+   }
+   printf("Neco je spatne!");
+
+}
+
+int co_delat(){
    bool konec=false;
    int vysledek1=0;
    int vysledek2=0;
    int result;
+   struct expStack *pom;
+   pom= nejblizsi_terminal();
+   printf("POM JE:%c\n",pom->data);
+   printf("TOKEN JE: %c\n",giveTok(&token));
+   vypis_zasobniku();
    for(int i=0;((konec==false)&&(i<VELIKOST_TABULKY));i++){
       //printf("Hledam ... %d.Pruchod\n",i);
       if(giveTok(&token)==PrecedencniTabulka[0][i]){
          printf("Nasel jsem shodu pro token na %d.prvku\n",i);
          vysledek2=i;
       }
-      if(zasobnik->data==PrecedencniTabulka[i][0]){
+      if(pom->data==PrecedencniTabulka[i][0]){
          vysledek1=i;
          printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
       }
@@ -154,51 +152,66 @@ void co_delat(){
    }
    switch(PrecedencniTabulka[vysledek1][vysledek2]){
       case '<': 
-         push(1); 
-         if((result = getToken(&token)) != SUCCESS) {
+         if ((result = push(1,pom))) { return result; }
+         vypis_zasobniku();
+         if ((result = push(0,pom))) { return result; }
+         if((result = getToken(&token))) {
             debug("%s\n", "ERROR - v LEX"); 
             return result; 
          }
-         push(0);
+         vypis_zasobniku();
+         if ((result = co_delat())) { return result; }
+
 
       break;
-      case '>':
+      case '>': 
+                printf("Skocilo to do >\n");
+                vypis_zasobniku();
+                if ((result = pop())) { return result; }
+                if ((result = co_delat())) { return result; }
       break;
-      case '=':
+      case '=': printf("Skocilo to do =\n");
+                vypis_zasobniku();
+                if ((result = pop())) { return result; }
+                if((result = getToken(&token))) {
+                  debug("%s\n", "ERROR - v LEX"); 
+                  return result; 
+                  }
+                vypis_zasobniku();
+                if ((result = co_delat())) { return result; }
       break;
-      case '-':
+      case '-': printf("Skocilo to do -\n");
+                vypis_zasobniku();
+                printf("%c\n",giveTok(&token));
       break;
-      default: printf("Chyba nekde v pici\n");
-
+      default:   return SUCCESS;
    }
 
    
 }
 
-
-
 int pocetPrvkuNaZasobniku(){
-struct expStack *aktualni;
-aktualni=zasobnik;
-int pocitadlo=0;
-	while(aktualni!=NULL){
-		pocitadlo++;
-		aktualni=aktualni->next;
-	}
-return pocitadlo;
+   struct expStack *aktualni;
+   aktualni=zasobnik;
+   int pocitadlo=0;
+	  while(aktualni!=NULL){
+		  pocitadlo++;
+		  aktualni=aktualni->next;
+	  }
+   return pocitadlo;
 }
 
 
 
 void vypis_zasobniku(){
-struct expStack *aktualni;
-aktualni=zasobnik;
-if(aktualni!=NULL){
-	printf("Zasobnik obsahuje polozky: ");
-	do{
-		printf("%c ",aktualni->data);
-		aktualni=aktualni->next;
-	}while(aktualni!=NULL);
+   struct expStack *aktualni;
+   aktualni=zasobnik;
+   if(aktualni!=NULL){
+	  printf("Zasobnik obsahuje polozky: ");
+	  do{
+		 printf("%c ",aktualni->data);
+		 aktualni=aktualni->next;
+	    }while(aktualni!=NULL);
 	printf("\n");
 }
 
