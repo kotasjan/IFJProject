@@ -85,6 +85,10 @@ int rovnFun()
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = parametrVolani())) { return result; }
+         if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((token.type != SEMICOLON)) { return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
       }
       case ASSIGNMENT:
@@ -92,6 +96,7 @@ int rovnFun()
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = expression())) { return result; }
          if ((token.type != SEMICOLON)) { return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
       }
       default:
@@ -125,6 +130,8 @@ int strRovn()
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = expression())) { return result; } 
+         if (token.type != SEMICOLON) { return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
       }
       default:
@@ -468,26 +475,14 @@ int expression()
    {
       default:
       {
-         int bracket = 1;
-         while(token.type != RIGHT_BRACKET)
+         while(token.type != SEMICOLON)
          {
-            if(token.type == LEFT_BRACKET) { bracket++; }
             if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }   
-            if(token.type == RIGHT_BRACKET) {
-               while(token.type == RIGHT_BRACKET)
-               {
-                  bracket--; 
-                  if(bracket) if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; } 
-                  if(!bracket) break;
-               }  
-            }    
          }
          return result;
       }
    }
-
    return SYNTAX_ERROR;
-
 }
 
 int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
@@ -507,6 +502,7 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
          tVar *var; // inicializace dat
          if (createVar(&var, id, typ, false)) { return INTERNAL_ERROR; }
          if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
+         debug("Promenna %s byla pridana do TS\n", id);
 
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;

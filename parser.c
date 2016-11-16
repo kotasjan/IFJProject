@@ -20,14 +20,14 @@ typedef struct stack
 void printFunction(tFunc *func)
 {
    debugFunc("Function name: %s\n", func->name);
-   debugFunc("Function retType: %s\n", func->retType == 300 ? "int" : func->retType == 301 ? "double" : func->retType == 302 ? "String" : "void" );
+   debugFunc("Function retType: %s\n", func->retType == TYPE_INT ? "int" : func->retType == TYPE_DOUBLE ? "double" : func->retType == TYPE_STRING ? "String" : "void" );
    debugFunc("Function paramCnt: %u\n", func->paramCnt);
    tFuncParam *tmp = func->param;
    int i = 0;
    while(tmp)
    {
       debugFunc("Function param %d: %s %s\n", i++, \
-         tmp->type == 300 ? "int" : tmp->type == 301 ? "double" : tmp->type == 302 ? "string" : "void", tmp->id);
+         tmp->type == TYPE_INT ? "int" : tmp->type == TYPE_DOUBLE ? "double" : tmp->type == TYPE_STRING ? "string" : "void", tmp->id);
       tmp = tmp->nextParam;
    }
 }
@@ -44,23 +44,28 @@ void printTS(table *TS)
          while(item)
          {
             printf("CLASS: %s\n", (*TS)[i]->key);
-            tClass *t = item->data;
-            table *class = t->data;
+            tClass *t = item->classData;
+            if(!t->isDeclared){
+               printf("neni deklarovana class %s\n",(*TS)[i]->key );
+               exit(1);
+            }
+            table *class = t->symbolTable;
             for(int j = 0; j < 100; j++)
             {
 
                if((*class)[j])
                {
                   if((*class)[j]->func){
+                     
                      printf("Function: %s\n", (*class)[j]->key);
-                     printFunction((*class)[j]->data);
+                     printFunction((*class)[j]->classData);
                   }
                   else
                   {
-                     tVar *var = (*class)[j]->data;
+                     tVar *var = (*class)[j]->classData;
                      printf("Variable: %s\n", (*class)[j]->key);
                      debugVar("Variable Name: %s\n", var->id);
-                     debugVar("Variable type: %s\n", var->type == 300 ? "int" : var->type == 301 ? "double" : var->type == 302 ? "string" : "void" );
+                     debugVar("Variable type: %s\n", var->type == TYPE_INT ? "int" : var->type == TYPE_DOUBLE ? "double" : var->type == TYPE_STRING ? "string" : "void" );
                      debugVar("Variable init: %s\n", var->init ? "true" : "false");
                   }
 
@@ -75,6 +80,64 @@ void printTS(table *TS)
 
 }
 
+int controlMainRun(table *TS)
+{
+   tList *data = tsRead(TS, "Main");
+   if (!data) { debug("ERROR: class Main missing\n"); return SYNTAX_ERROR; }
+   else
+   {
+      tClass *class = data->classData;
+      data = tsRead(class->symbolTable, "run");
+      if(!data) { debug("ERROR: static void run() in class Main missing\n"); return SYNTAX_ERROR; }
+      else if(!data->func) { debug("ERROR: static void run() : neni to funkce\n"); return SYNTAX_ERROR; }
+      tFunc *run = data->classData;
+      if(run->retType != TYPE_VOID) { debug("ERROR: static void run(): neni void\n"); return SYNTAX_ERROR; }
+      else if(run->paramCnt) { debug("ERROR: static void run(): nesouhlasi parametry\n"); return SYNTAX_ERROR; }
+   }
+
+   return SUCCESS;
+}
+
+
+
+int addClass(table *TS, tClass **class)
+{
+   int result;
+   tList *data = tsRead(TS, token.id);
+   if(!data)
+   {
+      debug("Definice tridy - prvni volani\n"); 
+      *class = calloc(1, sizeof(tClass));
+      if(!*class) { debug("%s\n", "malloc failed"); return INTERNAL_ERROR; }
+      (*class)->name = token.id;
+      (*class)->isDeclared = true;
+
+      result = tsInsert (TS, token.id, *class);
+      if(result == 1) return INTERNAL_ERROR;
+      else if(result == 2) { debug("%s %s\n", "Redifined class", "");  return SEM_ERROR; }
+      else debugClass("%s %s %s\n", "class", (*class)->name, "added to ST");
+
+   }
+   else
+   {
+      *class = data->classData;
+      if((*class)->isDeclared) 
+      { 
+         debug("Redifined class\n"); 
+         return SYNTAX_ERROR; 
+      }
+      else
+      {
+         debug("Trida jiz byla volana, ted se deklaruje\n");
+         (*class)->isDeclared = true;
+      }
+
+   }
+   
+
+   return SUCCESS;
+
+}
 
 int parse()
 {
@@ -86,33 +149,12 @@ int parse()
 
    result = addIFJ16(&TS);
 
-   if((result = getToken(&token)) != SUCCESS)
-   {
-      debug("%s\n", "Chyba v prvnim tokenu");
-      return result;
-   }
-   else
-   {
-      debug("%s\n", "Zacinam program <prog>");      
-   }
+   if ((result = getToken(&token)) != SUCCESS ) { debug("%s\n", "Chyba v prvnim tokenu"); return result; }
+   else { debug("%s\n", "Zacinam program <prog>"); }
 
-   if((result = prog(&TS)))
-   {
-      return result;
-   }
+   if ((result = prog(&TS))) { return result; }
 
-   tList *data = tsRead(&TS, "Main");
-   if(!data) { debug("ERROR: class Main missing\n"); return SYNTAX_ERROR; }
-   else
-   {
-      tClass *class = data->data;
-      data = tsRead(class->data, "run");
-      if(!data) { debug("ERROR: static void run() in class Main missing\n"); return SYNTAX_ERROR; }
-      else if(!data->func) { debug("ERROR: static void run() : neni to funkce\n"); return SYNTAX_ERROR; }
-      tFunc *func = data->data;
-      if(func->retType != TYPE_VOID) { debug("ERROR: static void run(): neni void\n"); return SYNTAX_ERROR; }
-      else if(func->paramCnt) { debug("ERROR: static void run(): nesouhlasi parametry\n"); return SYNTAX_ERROR; }
-   }
+   if((result = controlMainRun(&TS))) { return result; }
 
    printTS(&TS);
 
@@ -133,22 +175,15 @@ int prog(table *TS)
          if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
          if(token.type != IDENTIFIER) { debug("%s\n", "ERROR: <class ID>"); return SYNTAX_ERROR; }
 
-
-         // pridani tridy do tabulky
-         tClass *trida = calloc(1, sizeof(tClass));
-         if(trida == NULL) { debug("%s\n", "malloc failed"); return INTERNAL_ERROR; }
-         //tsInit(trida->data);
-         trida->name = token.id;
-         result = tsInsert (TS, token.id, trida);
-         if(result == 1) return INTERNAL_ERROR;
-         else if(result == 2) { debug("%s %s\n", "Redifined class", ""); return SEM_ERROR; }
-         else debugClass("%s %s %s\n", "class", token.id, "added to ST");
+         // pridani tridy do tabulky         
+         tClass *class;
+         if ((result = addClass(TS, &class)) != SUCCESS ) { return result; }
 
          if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
          if(token.type != LEFT_CURLY_BRACKET) { debug("%s %s\n", "<prvky tridy> - chyby {", printTok(&token)); return SYNTAX_ERROR; }
 
          if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
-         if((result = prvky_tridy(trida->data))) { return result; }
+         if((result = prvky_tridy(class->symbolTable))) { return result; }
 
          if(token.type != RIGHT_CURLY_BRACKET) { debug("%s %s\n", "<prvky tridy> - chyby }", printTok(&token)); return SYNTAX_ERROR; }
 
@@ -232,6 +267,20 @@ int zavStrRov(table *TS, varType type, char *key)
       	if (type==TYPE_VOID){
       		debug("%s %s\n", "Promenna je typu void", ""); return SEM_ERROR;
       	}
+
+         tList *data = tsRead(TS, key);
+         if(data)
+         {
+            tVar *var = data->classData;
+            if(!var->isDeclared)
+               debug("Deklarace promenne, jiz byla volana\n");
+            else
+            {
+               debug("%s %s\n", "Redifined var", ""); return SEM_ERROR;
+            }
+         }
+         else{
+
          // pridani promenne
          //**********************************************//
          tVar *var = calloc(1, sizeof(tVar));
@@ -247,6 +296,7 @@ int zavStrRov(table *TS, varType type, char *key)
 
          tList *data = tsRead(TS, var->id);
          if(data) data->func = false;
+      }
          //**********************************************//
 
          debug("%s %s\n", "<zavStrRov> deklarace", printTok(&token));
@@ -316,7 +366,7 @@ int zavStrRov(table *TS, varType type, char *key)
       		}
          // pridani promenne
          //**********************************************//
-         var = calloc(1, sizeof(tVar));
+         tVar *var = calloc(1, sizeof(tVar));
          if(!var) { return INTERNAL_ERROR; }
          var->id = key;
          var->type = type;
@@ -328,7 +378,7 @@ int zavStrRov(table *TS, varType type, char *key)
          else debug("%s %s %s\n", "variable", var->id, "added to ST");
 
          debugVar("Variable Name: %s\n", var->id);
-         debugVar("Variable type: %s\n", var->type == 300 ? "int" : var->type == 301 ? "double" : var->type == 302 ? "string" : "void" );
+         debugVar("Variable type: %s\n", var->type == TYPE_INT ? "int" : var->type == TYPE_DOUBLE ? "double" : var->type == TYPE_STRING ? "string" : "void" );
          debugVar("Variable init: %s\n", var->init ? "true" : "false");
          data = tsRead(TS, var->id);
          if(data) data->func = false;
@@ -424,6 +474,58 @@ int parametrVolani()
 
 }
 
+int rovnFun1(table *TS, char *key, bool declared)
+{
+
+   int result;
+   debug("%s\n", "<rovnFun__1>");  
+
+   switch(token.type)
+   {
+      case ASSIGNMENT:
+         debug("%s %s\n", "<rovnFun__1> prirazeni", printTok(&token));
+
+         tList *data = tsRead(TS, key);
+         if(!data)
+         {          
+            debug("promenna jeste nebyla deklarovana\n");
+            tVar *var = calloc(1, sizeof(tVar));
+            var->id = key;
+            var->init = false;  // todo
+            var->isDeclared = false;
+
+            result = tsInsert (TS, key, var);
+            if(result == 1) return INTERNAL_ERROR;
+            else if(result == 2) { debug("%s %s\n", "Redifined class", "");  return SEM_ERROR; }
+            else debugClass("%s %s %s\n", "var", var->id, "added to ST"); 
+         }
+   
+         if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
+         if((result = item())) { return result; }
+         if(token.type != SEMICOLON) { debug("%s %s\n", "<rovnFun><item> chybi ; ", printTok(&token)); return result; }
+         if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
+         return result;
+
+      case LEFT_BRACKET:
+         debug("%s %s\n", "<rovnFun__1> funkce", printTok(&token));
+         if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
+
+         if((result = parametrVolani())) { return result; }
+         if(token.type != RIGHT_BRACKET) { debug("%s %s\n", "<rovnFun><funkce> chybi ) ; ", printTok(&token)); return result; }
+
+         if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
+         if(token.type != SEMICOLON) { debug("%s %s\n", "<rovnFun><funkce> chybi ; ; ", printTok(&token)); return result; } 
+
+         if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
+         return result; 
+
+            
+   }
+
+
+}
+
+
 int rovnFun()
 {
    int result;
@@ -488,15 +590,59 @@ int veFunkci(tStack *stack)
       case FULL_IDENTIFIER:;
 
       	char *tmp = strtok(token.id, ".");
+         int i = 0;
+         tClass *class = NULL;
+         bool declared = false;
       	while(tmp) {
-        	printf("%s\n",tmp );
+            
+            tList *data;
+            if(!i)
+            {
+               data = tsRead(global, tmp);
+               if(!data)
+               {
+                  debug("Volani tridy %s.. jeste nebyla deklarovana\n", tmp); 
+                  class = calloc(1, sizeof(tClass));
+                  if(!class) { debug("%s\n", "malloc failed"); return INTERNAL_ERROR; }
+                  class->name = tmp;
+                  class->isDeclared = false;
+
+                  result = tsInsert (global, tmp, class);
+                  if(result == 1) return INTERNAL_ERROR;
+                  else if(result == 2) { debug("%s %s\n", "Redifined class", "");  return SEM_ERROR; }
+                  else debugClass("%s %s %s\n", "class", class->name, "added to ST");
+
+                  data = tsRead(global, tmp);
+                  class = data->classData;
+               }
+               else{ 
+                  
+                  class = data->classData;
+                  if(class->isDeclared) declared = true;
+               }
+            }
+            else
+            {
+               debug("%s %s\n", "<veFunkci> FULL ID", printTok(&token));
+               if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
+
+               if((result = rovnFun1(class->symbolTable, tmp, declared))) { return result; } 
+/*
+               result = tsInsert (class->symbolTable, tmp, );
+               if(result == 1) return INTERNAL_ERROR;
+               else if(result == 2) { debug("%s %s\n", "Redifined class", "");  return SEM_ERROR; }
+               else debugClass("%s %s %s\n", "class", class->name, "added to ST"); 
+*/
+            }
+            i++;
+            
+            
+        	
         	tmp = strtok(NULL, ".");
     		}
 
     		
-         debug("%s %s\n", "<veFunkci> ID", printTok(&token));
-         if((result = getToken(&token)) != SUCCESS) { debug("%s\n", "ERROR - v LEX"); return result; }
-         if((result = rovnFun())) { return result; } 
+         
 
           if((result = veFunkci(stack))) { return result; } 
 
@@ -879,6 +1025,8 @@ int addIFJ16(table *TS)
       return INTERNAL_ERROR;
    }
 
+   trida->isDeclared = true;
+
    result = tsInsert (TS, "ifj16", trida);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined class", ""); return SEM_ERROR; }
@@ -892,12 +1040,12 @@ int addIFJ16(table *TS)
    if(!func) { return INTERNAL_ERROR; }
    func->name = "readInt";
    func->retType = TYPE_INT;
-   result = tsInsert (ifj16->data, func->name, func);
+   result = tsInsert (ifj16->classData, func->name, func);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return SEM_ERROR; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   tList *data = tsRead(ifj16->data, func->name);
+   tList *data = tsRead(ifj16->classData, func->name);
    if(data) data->func = true;
 
    // readDouble
@@ -905,12 +1053,12 @@ int addIFJ16(table *TS)
    if(!func) { return INTERNAL_ERROR; }
    func->name = "readDouble";
    func->retType = TYPE_DOUBLE;
-   result = tsInsert (ifj16->data, func->name, func);
+   result = tsInsert (ifj16->classData, func->name, func);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return SEM_ERROR; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   data = tsRead(ifj16->data, func->name);
+   data = tsRead(ifj16->classData, func->name);
    if(data) data->func = true;
 
    // readString
@@ -918,12 +1066,12 @@ int addIFJ16(table *TS)
    if(!func) { return INTERNAL_ERROR; }
    func->name = "readString";
    func->retType = TYPE_STRING;
-   result = tsInsert (ifj16->data, func->name, func);
+   result = tsInsert (ifj16->classData, func->name, func);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return SEM_ERROR; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   data = tsRead(ifj16->data, func->name);
+   data = tsRead(ifj16->classData, func->name);
    if(data) data->func = true;
 
    // print
@@ -932,12 +1080,12 @@ int addIFJ16(table *TS)
    if(!func) { return INTERNAL_ERROR; }
    func->name = "print";
    func->retType = TYPE_VOID;
-   result = tsInsert (ifj16->data, func->name, func);
+   result = tsInsert (ifj16->classData, func->name, func);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return SEM_ERROR; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   data = tsRead(ifj16->data, func->name);
+   data = tsRead(ifj16->classData, func->name);
    if(data) data->func = true;
 
    // length
@@ -954,12 +1102,12 @@ int addIFJ16(table *TS)
    func->param->id = "s";
    func->param->type = TYPE_STRING;
 
-   result = tsInsert (ifj16->data, func->name, func);
+   result = tsInsert (ifj16->classData, func->name, func);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return SEM_ERROR; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   data = tsRead(ifj16->data, func->name);
+   data = tsRead(ifj16->classData, func->name);
    if(data) data->func = true;
 
    // substr
@@ -998,12 +1146,12 @@ int addIFJ16(table *TS)
    param->id = "n";
    param->type = TYPE_INT;
 
-   result = tsInsert (ifj16->data, func->name, func);
+   result = tsInsert (ifj16->classData, func->name, func);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return SEM_ERROR; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   data = tsRead(ifj16->data, func->name);
+   data = tsRead(ifj16->classData, func->name);
    if(data) data->func = true;
 
 
@@ -1032,12 +1180,12 @@ int addIFJ16(table *TS)
    param->id = "s2";
    param->type = TYPE_STRING;
 
-   result = tsInsert (ifj16->data, func->name, func);
+   result = tsInsert (ifj16->classData, func->name, func);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return SEM_ERROR; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   data = tsRead(ifj16->data, func->name);
+   data = tsRead(ifj16->classData, func->name);
    if(data) data->func = true;
 
    // find
@@ -1065,12 +1213,12 @@ int addIFJ16(table *TS)
    param->id = "search";
    param->type = TYPE_STRING;
 
-   result = tsInsert (ifj16->data, func->name, func);
+   result = tsInsert (ifj16->classData, func->name, func);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return SEM_ERROR; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   data = tsRead(ifj16->data, func->name);
+   data = tsRead(ifj16->classData, func->name);
    if(data) data->func = true;
 
    // sort
@@ -1088,12 +1236,12 @@ int addIFJ16(table *TS)
    func->param->id = "s";
    func->param->type = TYPE_STRING;
 
-   result = tsInsert (ifj16->data, func->name, func);
+   result = tsInsert (ifj16->classData, func->name, func);
    if(result == 1) return INTERNAL_ERROR;
    else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return SEM_ERROR; }
    else debug("%s %s %s\n", "func", func->name, "added to ST");
 
-   data = tsRead(ifj16->data, func->name);
+   data = tsRead(ifj16->classData, func->name);
    if(data) data->func = true;
 
 }
