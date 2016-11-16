@@ -1,0 +1,7 @@
+class Main {
+	static double a = 5.5e+-52;
+
+	static void run(){
+		String za = "ahoj";
+	}
+}
