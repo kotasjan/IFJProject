@@ -1,13 +1,16 @@
+#include "ial.h"
+#include "scaner.h"
+#include "expr.h"
+#include "debug.h"
+
 typedef struct expStack
 {
    char data;
    struct expStack *next;
 } tExpStack;
 
-
-
-
-
+tExpStack *zasobnik;
+tToken token;
 
 char giveTok(tToken *token){
 switch(token->type)
@@ -58,7 +61,7 @@ switch(token->type)
 
 
 
-const char PrecedencniTabulka[Velikost_tabulky][Velikost_tabulky]={
+const char PrecedencniTabulka[VELIKOST_TABULKY][VELIKOST_TABULKY]={
 
 /*          */{'Q','+','-','*','/','<','>','o','g','e','n','i','d','s','p','(',')','$'},
 /*	   +     */{'+','>','>','<','<','>','>','>','>','>','>','<','<','<','>','>','>','>'},
@@ -119,10 +122,10 @@ void pop(){
 	zasobnik=zasobnik->next;
 	free(tmp);
 }
-int boolexpression(){
+int _boolexpression(){
       int result;
 }
-int expression(){
+int _expression(){
 		int result;
    		stackInit();
          co_delat();
@@ -135,7 +138,7 @@ void co_delat(){
    int vysledek1=0;
    int vysledek2=0;
    int result;
-   for(int i=0;((konec==false)&&(i<Velikost_tabulky));i++){
+   for(int i=0;((konec==false)&&(i<VELIKOST_TABULKY));i++){
       //printf("Hledam ... %d.Pruchod\n",i);
       if(giveTok(&token)==PrecedencniTabulka[0][i]){
          printf("Nasel jsem shodu pro token na %d.prvku\n",i);
