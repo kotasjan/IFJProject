@@ -9,6 +9,11 @@
 
 FILE *file;
 
+void setFileToBegin()
+{
+	rewind(file);
+}
+
 void setFile(FILE *fp)
 {
 	file = fp;

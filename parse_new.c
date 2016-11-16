@@ -22,7 +22,11 @@ int parse()
    if ((result = prog(&TS))) { return result; }
    
    if (controlMainRun()) { return SYNTAX_ERROR; }
+
    printTS(globalTS);
+
+   setFileToBegin(); // nastavi soubor na zacatek, 2. pruchod
+
 
 
 }
@@ -221,11 +225,13 @@ int boolExp()
          {
             if(token.type == LEFT_BRACKET) { bracket++; }
             if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }   
+            if (token.type == END_OF_FILE) return SYNTAX_ERROR;
             if(token.type == RIGHT_BRACKET) {
                while(token.type == RIGHT_BRACKET)
                {
                   bracket--; 
                   if(bracket) if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; } 
+                  if (token.type == END_OF_FILE) return SYNTAX_ERROR;
                   if(!bracket) break;
                }  
             }    
@@ -339,6 +345,7 @@ int veFunkci(tStack *stack)
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != IDENTIFIER) { debug("Nema ID -- %s\n", printTok(&token)); return result; }
          if (controlDecTable(stack->table, token.id)) { return SYNTAX_ERROR; } // redeklarace promenne
+         debug("Promenna %s byla pridana do TS funkce\n", token.id);
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = strRovn())) { return result; }
          if ((result = veFunkci(stack))) { return result; }
@@ -473,11 +480,14 @@ int expression()
 
    switch (token.type)
    {
+      case END_OF_FILE:
+         return SYNTAX_ERROR;
       default:
       {
          while(token.type != SEMICOLON)
          {
             if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }   
+            if (token.type == END_OF_FILE) return SYNTAX_ERROR;
          }
          return result;
       }
@@ -551,9 +561,9 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
          if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
          
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-
          if ((result = expression())) { debug("ERROR - v exp'\n"); return result; }
          if (token.type != SEMICOLON) { debug("chyby ;\n"); return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
 
          return result;
       }
@@ -738,8 +748,6 @@ int prvkyTridy(table *TS, tStack *stack)
          char *id = token.id;
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = zavStrRov(TS, typ, id, stack))) { return result; }
-
-
          if ((result = prvkyTridy(TS, stack))) { return result; }
          return result;
       }
@@ -758,6 +766,7 @@ int prog()
       // EOF
       case END_OF_FILE: 
          return SUCCESS;
+
 
       // class ID { }
       case CLASS:

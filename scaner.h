@@ -112,6 +112,7 @@ typedef struct token
 errCode getToken(tToken *data);
 
 void setFile(FILE *fp);
+void setFileToBegin();
 
 
 
