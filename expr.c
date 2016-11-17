@@ -3,6 +3,7 @@
 #include "expr.h"
 #include "debug.h"
 #include "ifj.h"
+#include "parse_new.h"
 
 struct expStack *zasobnik;
 tToken token;
@@ -99,6 +100,12 @@ int boolexpression(){
 }
 
 int expression(){
+
+      printf("eee %u\n", tokenStack.top);
+      if( tokenStack.top)
+      {
+         printf("ww  %s\n",printTok(&tokenStack.token[0]) );
+      }
       int result;
       if (token.type == SEMICOLON) { return SYNTAX_ERROR; }
       printf("ZACATEK\n\n\n");

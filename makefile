@@ -30,7 +30,7 @@ parse_new.o: parse_new.c parse_new.h ial.h debug.h ifj16Func.h expr.h
 ifj16Func.o: ifj16Func.c ifj16Func.h ial.h ifj.h debug.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-expr.o: expr.c expr.h ial.h scaner.h debug.h
+expr.o: expr.c expr.h ial.h scaner.h debug.h parse_new.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
 interpret.o: interpret.c interpret.h ifj.h instruction.h

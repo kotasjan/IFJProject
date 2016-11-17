@@ -5,8 +5,8 @@
 
 typedef struct
 {
-   tToken token;
-   bool active;
+   tToken token[2];
+   unsigned top;
 
 } tTokenStack;
 

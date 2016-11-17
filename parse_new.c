@@ -18,7 +18,7 @@ int parse()
    table TS;
    tsInit(&TS);
    globalTS = &TS;
-   tokenStack.active = false;
+   tokenStack.top = 0;
 
    if ((result = addIFJ16(&TS))) { return result; }
 
@@ -142,11 +142,16 @@ int strRovn()
          if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
          if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
          {
-            memcpy(&tokenStack.token, &token, sizeof(tToken));
-            tokenStack.active = true;
+            memcpy(&tokenStack.token[tokenStack.top++], &token, sizeof(tToken));
+            
          }
+         printf("ee %s\n",printTok(&tokenStack.token) );
          if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
          if (token.type != LEFT_BRACKET)
+         {
+            memcpy(&tokenStack.token[tokenStack.top++], &token, sizeof(tToken));
+         }
+         printf("%d\n", tokenStack.token[--tokenStack.top].type);
          if ((result = expression())) { return result; } 
          if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
