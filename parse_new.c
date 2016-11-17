@@ -455,6 +455,7 @@ int addParamToStack(tFunc *func, tStack *stack)
          result = tsInsert(stack->table, var->id, var);
 
          if (result == 1) { return INTERNAL_ERROR; }
+         if (result == 2) { debug("Redeklarace promenne '%s'\n", func->name); return SYNTAX_ERROR; }
          debug("Parametr funkce '%s' pridan do TS funkce\n", func->name);
 
          param = param->nextParam;
@@ -538,7 +539,7 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
          table table;
          tsInit(&table);
          tStack *stack = createStack(prevStack, &table); 
-         if (addParamToStack(func, stack)) { return INTERNAL_ERROR; }
+         if ((result = addParamToStack(func, stack))) { return result; }
          if (tsInsertFunction(TS, func)) { return INTERNAL_ERROR; }
 
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // {
@@ -617,7 +618,7 @@ int dalsiParametr(tFunc *func)
          if (typ == VOID) { debug("parametr typu VOID -- %s\n", printTok(&token)); return SEM_ERROR; }
 
          if (token.type != IDENTIFIER) { debug("nema ID -- %s\n", printTok(&token)); return result; }
-         if(addFuncParam(func, typ)) { return INTERNAL_ERROR; }
+         if (addFuncParam(func, typ)) { return INTERNAL_ERROR; }
 
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // ID
          if ((result = dalsiParametr(func))) { return result; }
