@@ -1,5 +1,6 @@
 #pragma once
 #include "ial.h"
+#include <stdlib.h>
 
 typedef struct stack
 {
@@ -7,6 +8,7 @@ typedef struct stack
    struct stack *next;
 } tStack;
 
+extern table *globalTS;
 
 int parse();   
 int tsInsertClass(tClass **class);

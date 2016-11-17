@@ -3,7 +3,7 @@
 
 #define VELIKOST_TABULKY 18
 
-const char PrecedencniTabulka[VELIKOST_TABULKY][VELIKOST_TABULKY]={
+static const char PrecedencniTabulka[VELIKOST_TABULKY][VELIKOST_TABULKY]={
 
 /*           */{'Q','+','-','*','/','<','>','o','g','e','n','i','d','s','p','(',')','$'},
 /*	   +     */{'+','<','<','<','<','>','>','>','>','>','>','<','<','<','<','<','>','>'},

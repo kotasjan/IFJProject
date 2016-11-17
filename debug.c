@@ -26,6 +26,7 @@ void printFunction(tFunc *func)
    debugFunc("Function name: %s\n", func->name);
    debugFunc("Function retType: %s\n", func->retType == TYPE_INT ? "int" : func->retType == TYPE_DOUBLE ? "double" : func->retType == TYPE_STRING ? "String" : "void" );
    debugFunc("Function paramCnt: %u\n", func->paramCnt);
+   debugFunc("Function deklaration: %s\n", func->isDeclared ? "true" : "false" );
    tFuncParam *tmp = func->param;
    int i = 0;
    while(tmp)
@@ -62,15 +63,18 @@ void printTS(table *TS)
                   if((*class)[j]->func){
                      
                      printf("Function: %s\n", (*class)[j]->key);
+                     debugFunc("Function isFunc: %s\n", (*class)[j]->func ? "true" : "false");
                      printFunction((*class)[j]->dataPtr);
                   }
                   else
                   {
                      tVar *var = (*class)[j]->dataPtr;
                      printf("Variable: %s\n", (*class)[j]->key);
+                     debugVar("Variable isFunc: %s\n", (*class)[j]->func ? "true" : "false");
                      debugVar("Variable Name: %s\n", var->id);
                      debugVar("Variable type: %s\n", var->type == TYPE_INT ? "int" : var->type == TYPE_DOUBLE ? "double" : var->type == TYPE_STRING ? "string" : "void" );
                      debugVar("Variable init: %s\n", var->init ? "true" : "false");
+                     debugVar("Variable isDeclared: %s\n", var->isDeclared ? "true" : "false");
                   }
 
                }

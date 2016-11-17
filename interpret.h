@@ -1,8 +1,9 @@
 #pragma once
+#include "instruction.h"
 
 typedef struct
 {
-   tInstrType InstrType;
+   tInstrType instrType;
    void *addr1;
    void *addr2;
    void *addr3;

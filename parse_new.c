@@ -4,10 +4,12 @@
 #include "scaner.h"
 #include "debug.h"
 #include "ifj16Func.h"
+#include "expr.h"
 #include <string.h>
 
-table *globalTS = NULL;
+
 tToken token;
+table *globalTS = NULL;
 
 int parse()
 {
@@ -27,8 +29,9 @@ int parse()
 
    setFileToBegin(); // nastavi soubor na zacatek, 2. pruchod
 
+   if ((result = semProg(&TS))) { return result; }
 
-
+   return SUCCESS;
 }
 
 int dalsiParametrVolani()
@@ -98,7 +101,8 @@ int rovnFun()
       case ASSIGNMENT:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = expression())) { return result; }
+         if ((result = expression())) { printf("%s\n",printTok(&token) ); return result; }
+         printf("%s\n",printTok(&token) );
          if ((token.type != SEMICOLON)) { return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
@@ -132,7 +136,7 @@ int strRovn()
       }
       case ASSIGNMENT:
       {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         //if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
          if ((result = expression())) { return result; } 
          if (token.type != SEMICOLON) { return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
@@ -319,7 +323,7 @@ int blok()
       }
       case RETURN:
       {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         //if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = expression())) { return result; } 
          if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
@@ -420,7 +424,7 @@ int veFunkci(tStack *stack)
       }
       case RETURN:
       {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         //if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = expression())) { return result; } 
          if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
@@ -474,7 +478,7 @@ int tsInsertFunction(table *TS, tFunc *func)
 
 }
 
-int expression()
+int _expression()
 {
    int result;
 
@@ -531,6 +535,7 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
          if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }   // )
 
          table table;
+         tsInit(&table);
          tStack *stack = createStack(prevStack, &table); 
          if (addParamToStack(func, stack)) { return INTERNAL_ERROR; }
          if (tsInsertFunction(TS, func)) { return INTERNAL_ERROR; }
@@ -560,7 +565,7 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
          if (createVar(&var, id, typ, true)) { return INTERNAL_ERROR; } // inicializace dat
          if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
          
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         //if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = expression())) { debug("ERROR - v exp'\n"); return result; }
          if (token.type != SEMICOLON) { debug("chyby ;\n"); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
@@ -723,7 +728,6 @@ int createVar(tVar **var, char *id, tType typ, bool init)
 
 tStack *createStack(tStack *stack, table *TS)
 {
-   tsInit(TS);
    tStack *new;
    if (NULL == (new = calloc(1, sizeof(tStack)))) { return NULL; }
    new->table = TS;
@@ -761,7 +765,7 @@ int prog()
 {
    int result;
 
-   switch(token.type)
+   switch (token.type)
    {
       // EOF
       case END_OF_FILE: 
@@ -770,8 +774,8 @@ int prog()
 
       // class ID { }
       case CLASS:
-         if((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if(token.type != IDENTIFIER) { debug("%s\n", "ERROR: <class ID>"); return SYNTAX_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if (token.type != IDENTIFIER) { debug("%s\n", "ERROR: <class ID>"); return SYNTAX_ERROR; }
 
          // pridani tridy do tabulky
          tClass *class;
@@ -783,6 +787,7 @@ int prog()
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          
          tStack *stack;
+         tsInit(class->symbolTable);
          if (NULL == (stack = createStack(NULL, class->symbolTable))) { return INTERNAL_ERROR; }
          
          if ((result = prvkyTridy(class->symbolTable, stack))) { return result; }
