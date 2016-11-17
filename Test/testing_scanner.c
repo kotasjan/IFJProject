@@ -59,8 +59,8 @@ int getToken(tToken *data){				// je treba FILE * file parametr nebo globalni pr
 				else if (c == ']') { free(data->id); data->type = RIGHT_SQUARE_BRACKET; return SUCCESS; }
 				else if (c == '{') { free(data->id); data->type = LEFT_CURLY_BRACKET; 	return SUCCESS; }
 				else if (c == '}') { free(data->id); data->type = RIGHT_CURLY_BRACKET; 	return SUCCESS; }
-				else if (c == '.') { free(data->id); data->type = DOT; 						return SUCCESS; }
-				else if (c == ',') { free(data->id); data->type = COMMA; 					return SUCCESS; }
+				else if (c == '.') { free(data->id); data->type = DOT; 						return LEX_ERROR; }
+				else if (c == ',') { free(data->id); data->type = COMMA; 					return LEX_ERROR; }
 				else if (c == ';') { free(data->id); data->type = SEMICOLON; 				return SUCCESS; }
 				else if (c == '*') { free(data->id); data->type = MULTIPLIER; 				return SUCCESS; }		// */ musi predchazet /*, proto pri IS_DEFAULT jedine return MULTIPLIER
 				
@@ -568,11 +568,12 @@ char * pole[1000] = {"id","full_id",",",";",".","eof","(",
 int main(int argc, char ** argv)
 {
 tToken token;
-file = fopen("soubor_test.txt", "r");
+file = fopen(argv[1], "r");
 if (file == NULL) { printf("fail to open file"); exit(5); }
 
 while(token.type != END_OF_FILE){
-	getToken(&token);
+	int result = getToken(&token);
+	if(result) printf("LEX_ERROR\n");
 	printf("%s\n",  printTok(&token));
 }
 

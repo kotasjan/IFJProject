@@ -28,6 +28,7 @@ int checkSize(tToken *data)
 		{
 			return -1;
 		}
+		data->allocSize += REALLOC_SIZE;
 	}
 	return 1;
 }
@@ -49,7 +50,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 	
 	if (data->id == NULL)
 	{
-		return LEX_ERROR;				// asi vratit neco jineho nez LEX_ERROR...
+		return INTERNAL_ERROR;				// asi vratit neco jineho nez LEX_ERROR...
 	}
 
 	while (1)
@@ -65,8 +66,8 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				else if (c == ']') { free(data->id); data->type = RIGHT_SQUARE_BRACKET; return SUCCESS; }
 				else if (c == '{') { free(data->id); data->type = LEFT_CURLY_BRACKET; 	return SUCCESS; }
 				else if (c == '}') { free(data->id); data->type = RIGHT_CURLY_BRACKET; 	return SUCCESS; }
-				else if (c == '.') { free(data->id); data->type = DOT; 						return SUCCESS; }
-				else if (c == ',') { free(data->id); data->type = COMMA; 					return SUCCESS; }
+				else if (c == '.') { free(data->id); data->type = DOT; 						return LEX_ERROR; }
+				else if (c == ',') { free(data->id); data->type = COMMA; 					return LEX_ERROR; }
 				else if (c == ';') { free(data->id); data->type = SEMICOLON; 				return SUCCESS; }
 				else if (c == '*') { free(data->id); data->type = MULTIPLIER; 				return SUCCESS; }		// */ musi predchazet /*, proto pri IS_DEFAULT jedine return MULTIPLIER
 				
@@ -85,7 +86,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -100,7 +101,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -179,7 +180,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -226,7 +227,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 			break;
 			
 			case IS_FULL_COMMENT:
-				if (c == EOF) { free(data->id); data->type = END_OF_FILE; return SUCCESS; }				// nebo LEX_ERROR ? viz soubory z wiki
+				if (c == EOF) { free(data->id); data->type = END_OF_FILE; return LEX_ERROR; }				// nebo LEX_ERROR ? viz soubory z wiki
 				else if (c == '*') state = IS_FULL_COMMENT_END;
 				else
 				{
@@ -235,7 +236,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 			break;
 			
 			case IS_FULL_COMMENT_END:
-				if (c == EOF) { free(data->id); data->type = END_OF_FILE; return SUCCESS; }					// nebo LEX_ERROR ? viz soubory z wiki
+				if (c == EOF) { free(data->id); data->type = END_OF_FILE; return LEX_ERROR; }					// nebo LEX_ERROR ? viz soubory z wiki
 				else if (c == '/') state = IS_DEFAULT;
 				else
 				{
@@ -250,7 +251,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					if (c == '"') (data->id)[data->length] = '"';
@@ -318,7 +319,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = octave;
@@ -342,7 +343,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -355,7 +356,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
  				{
  					if (checkSize(data) == -1)
  					{
- 						return LEX_ERROR;
+ 						return INTERNAL_ERROR;
  					}
  					
  					(data->id)[data->length] = c;
@@ -400,9 +401,14 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
  				if (c == EOF) return LEX_ERROR;
  				else if (isdigit(c) || isalpha(c) || c == '_' || c == '$')
  				{
+ 					if (isdigit(c) && ((data->id)[data->length-1] == '.'))
+ 					{
+ 						free(data->id);
+ 						return LEX_ERROR;
+ 					}
  					if (checkSize(data) == -1)
  					{
- 						return LEX_ERROR;
+ 						return INTERNAL_ERROR;
  					}
  					
  					(data->id)[data->length] = c;
@@ -422,10 +428,11 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 			case IS_SIMPLE_NUMBER:
 				if (isdigit(c) || c == '.' || c == 'e' || c == 'E')
 				{
+					
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -435,7 +442,12 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (isdigit(c)) state = IS_SIMPLE_NUMBER;
 					else if (c == '.') state = IS_DECIMAL_NUMBER;
 					else if (c == 'e' || c == 'E') state = IS_EXP_NUMBER;
-				}			
+				}	
+				else if (isalpha(c))
+				{
+					free(data->id);
+					return LEX_ERROR;
+				}		
 				else
 				{
 					ungetc(c, file);
@@ -450,7 +462,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -459,7 +471,12 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					
 					if (isdigit(c)) state = IS_DECIMAL_NUMBER;
 					else if (c == 'e' || c == 'E') state = IS_DEC_EXP_NUMBER;
-				}			
+				}	
+			   else if (isalpha(c))
+				{
+					free(data->id);
+					return LEX_ERROR;
+				}		
 				else
 				{
 					ungetc(c, file);
@@ -474,7 +491,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -482,7 +499,12 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					(data->id)[data->length] = '\0';
 					
 					state = IS_EXP_AFTER_SIGN_NUMBER;
-				}			
+				}
+				else if (isalpha(c))
+				{
+					free(data->id);
+					return LEX_ERROR;
+				}				
 				else
 				{
 					ungetc(c, file);
@@ -497,7 +519,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -505,6 +527,11 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					(data->id)[data->length] = '\0';
 					
 					state = IS_DEC_EXP_AFTER_SIGN_NUMBER;
+				}
+				else if (isalpha(c))
+				{
+					free(data->id);
+					return LEX_ERROR;
 				}			
 				else
 				{
@@ -520,7 +547,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -528,7 +555,12 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					(data->id)[data->length] = '\0';
 					
 					state = IS_DEC_EXP_AFTER_SIGN_NUMBER;
-				}			
+				}	
+				else if (c == '-' || c == '+' || isalpha(c))
+				{
+					free(data->id);
+					return LEX_ERROR;
+				}
 				else
 				{
 					ungetc(c, file);
@@ -543,7 +575,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					if (checkSize(data) == -1)
 					{
 						free(data->id);
-						return LEX_ERROR;
+						return INTERNAL_ERROR;
 					}
 					
 					(data->id)[data->length] = c;
@@ -551,6 +583,11 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 					(data->id)[data->length] = '\0';
 					
 					state = IS_EXP_AFTER_SIGN_NUMBER;
+				}	
+				else if (isalpha(c))
+				{
+					free(data->id);
+					return LEX_ERROR;
 				}			
 				else
 				{
