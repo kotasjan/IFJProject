@@ -1,0 +1,9 @@
+class Main {
+	static int a = 6;
+
+	static void run(){
+		neco
+		ifj16.print("ahoj");
+	}
+	
+}

@@ -1,0 +1,8 @@
+class Main {
+	static int = 6;
+
+	static void run(){
+		ifj16.print("ahoj");
+	}
+	
+}
