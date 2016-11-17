@@ -67,7 +67,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				else if (c == '{') { free(data->id); data->type = LEFT_CURLY_BRACKET; 	return SUCCESS; }
 				else if (c == '}') { free(data->id); data->type = RIGHT_CURLY_BRACKET; 	return SUCCESS; }
 				else if (c == '.') { free(data->id); data->type = DOT; 						return LEX_ERROR; }
-				else if (c == ',') { free(data->id); data->type = COMMA; 					return LEX_ERROR; }
+				else if (c == ',') { free(data->id); data->type = COMMA; 					return SUCCESS; }
 				else if (c == ';') { free(data->id); data->type = SEMICOLON; 				return SUCCESS; }
 				else if (c == '*') { free(data->id); data->type = MULTIPLIER; 				return SUCCESS; }		// */ musi predchazet /*, proto pri IS_DEFAULT jedine return MULTIPLIER
 				
