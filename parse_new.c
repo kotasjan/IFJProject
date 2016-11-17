@@ -29,7 +29,7 @@ int parse()
 
    setFileToBegin(); // nastavi soubor na zacatek, 2. pruchod
 
-   if ((result = semProg(&TS))) { return result; }
+   if ((result = semProg(&TS))) { printf("rtt"); return result; }
 
    return SUCCESS;
 }
@@ -85,12 +85,14 @@ int parametrVolani()
 int rovnFun()
 {
    int result;
+         printf("%s\n",printTok(&token));
 
    switch (token.type)
    {
       case LEFT_BRACKET:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+
          if ((result = parametrVolani())) { return result; }
          if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
@@ -101,8 +103,7 @@ int rovnFun()
       case ASSIGNMENT:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = expression())) { printf("%s\n",printTok(&token) ); return result; }
-         printf("%s\n",printTok(&token) );
+         if ((result = expression())) { return result; }
          if ((token.type != SEMICOLON)) { return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
@@ -136,9 +137,9 @@ int strRovn()
       }
       case ASSIGNMENT:
       {
-         //if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
          if ((result = expression())) { return result; } 
-         if (token.type != SEMICOLON) { return result; }
+         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
       }
@@ -300,7 +301,7 @@ int blok()
          if ((result = boolExp())) { return result; } 
          if (token.type != RIGHT_BRACKET) { debug("DO nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != SEMICOLON) { debug("DO ; } -- %s\n", printTok(&token)); return result; }
+         if (token.type != SEMICOLON) { debug("DO ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = blok())) { return result; } 
          return result;  
@@ -323,9 +324,9 @@ int blok()
       }
       case RETURN:
       {
-         //if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = expression())) { return result; } 
-         if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return result; }
+         if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
          if ((result = blok())) { return result; } 
          return result; 
@@ -401,7 +402,7 @@ int veFunkci(tStack *stack)
          if ((result = boolExp())) { return result; } 
          if (token.type != RIGHT_BRACKET) { debug("DO nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != SEMICOLON) { debug("DO ; } -- %s\n", printTok(&token)); return result; }
+         if (token.type != SEMICOLON) { debug("DO ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = veFunkci(stack))) { return result; } 
          return result;  
@@ -424,9 +425,9 @@ int veFunkci(tStack *stack)
       }
       case RETURN:
       {
-         //if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = expression())) { return result; } 
-         if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return result; }
+         if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
          if ((result = veFunkci(stack))) { return result; } 
          return result; 
@@ -477,8 +478,8 @@ int tsInsertFunction(table *TS, tFunc *func)
    return SUCCESS;
 
 }
-
-int _expression()
+/*
+int expression()
 {
    int result;
 
@@ -497,7 +498,7 @@ int _expression()
       }
    }
    return SYNTAX_ERROR;
-}
+}*/
 
 int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
 {
@@ -565,17 +566,18 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
          if (createVar(&var, id, typ, true)) { return INTERNAL_ERROR; } // inicializace dat
          if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
          
-         //if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = expression())) { debug("ERROR - v exp'\n"); return result; }
-         if (token.type != SEMICOLON) { debug("chyby ;\n"); return result; }
+         if (token.type != SEMICOLON) { debug("chyby ;\n"); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
 
          return result;
       }
-
-
-
+      default:
+         break;
    }
+
+   return SYNTAX_ERROR;
 }
 
 // VSE OK -- HOTOVO
@@ -752,6 +754,7 @@ int prvkyTridy(table *TS, tStack *stack)
          char *id = token.id;
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = zavStrRov(TS, typ, id, stack))) { return result; }
+
          if ((result = prvkyTridy(TS, stack))) { return result; }
          return result;
       }

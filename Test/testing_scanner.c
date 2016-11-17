@@ -115,7 +115,8 @@ int getToken(tToken *data){				// je treba FILE * file parametr nebo globalni pr
 				{
 					ungetc(c, file);
 					free(data->id);
-					return LESS;
+					data->type = LESS;
+					return SUCCESS;
 				}
 			break;
 			
@@ -648,7 +649,7 @@ char *printTok(tToken *token)
          return "==";
          break;
       case LESS:
-         return ;
+         return "<";
          break;
       case GREATER_OR_EQUAL:
          return ">=";

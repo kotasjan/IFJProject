@@ -121,7 +121,8 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				{
 					ungetc(c, file);
 					free(data->id);
-					return LESS;
+					data->type = LESS;
+					return SUCCESS;
 				}
 			break;
 			

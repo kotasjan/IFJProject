@@ -1,4 +1,7 @@
 /* Program 1: Vypocet faktorialu (iterativne) */
+<
+> 
+
 class Main {
 
 /* Test datovych typu */

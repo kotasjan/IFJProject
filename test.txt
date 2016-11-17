@@ -3,19 +3,21 @@ class Main
 static void run()
 {
 int a; int vysl; int neg;
-ifj16.print("Zadejte cislo pro vypocet faktorialu: ");
+ifj16.print("Zadejte ci  ");
 int i; 
-a = t + 4;//ifj16.readInt();
+a = ((t) + 1/(3+(((7+i*t*5))))*(4));//ifj16.readInt();
 int p;
 if (a  s) {
-ifj16.print("Faktorial nelze spocitat!");
+ifj16.print("Faktortoriatat!");
 }
 else {
-vysl = factorial(a);
+vysl = 5;// factorial(a);
 neg = 0 - vysl;
-ifj16.print("Vysledek: ");
-ifj16.print(" (zaporny: ");
+ifj16.print("Vysek: ");
+ifj16.print(" (orny: ");
 }
+int pww;
+
 }
 static int factorial(int n) 
 {
@@ -25,7 +27,7 @@ if (n  2) {
 return 1;
 }
 else {
-temp_result = factorial(decremented_n);
+//temp_result = factorial(decremented_n);
 temp_result = n * temp_result;
 return temp_result;
 }
@@ -40,9 +42,9 @@ static void run()
 String str1;
 str1 = "Toto je nejaky text";
 String str2;
-str2 = str1 + ", ktery jeste trochu obohatime";
-Main.x = ifj16.find(str2, "text");
-ifj16.print("Pozice retezce text v retezci str2: ");
+//str2 = str1 + ", ktery jeste trochu obohatime";
+//Main.x = ifj16.find(str2, "text");
+ifj16.print("Pozice str2: ");
 Game.play(str1);
 } // end of static void run()
 } // end of class Main
@@ -50,17 +52,17 @@ class Game
 {
 static void play(String str)
 {
-ifj16.print("Zadejte nejakou posloupnost vsech malych pismen a-h, ");
-ifj16.print("pricemz se pismena nesmeji v posloupnosti opakovat:");
-str = ifj16.readString();
-str = ifj16.sort(str);
-int cmp = ifj16.compare(str, "abcdefgh");
+ifj16.print("Zadejh, ");
+ifj16.print("pricemvat:");
+//str = ifj16.readString();
+//str = ifj16.sort(str);
+//int cmp = ifj16.compare(str, "abcdefgh");
 if (cmp != 0) {
 while (cmp != 0) {
-ifj16.print("Spatne zadana posloupnost, zkuste znovu:");
-str = ifj16.readString();
-str = ifj16.sort(str);
-cmp = ifj16.compare(str, "abcdefgh");
+ifj16.print("Spatne zovu:");
+//str = ifj16.readString();
+//str = ifj16.sort(str);
+//cmp = ifj16.compare(str, "abcdefgh");
 }
 }
 else {
@@ -74,11 +76,11 @@ class Mainrr
 static void run()
 {
 int a;
-ifj16.print("Zadejte cislo pro vypocet faktorialu: ");
-a = ifj16.readInt();
+ifj16.print("Zadejttorialu: ");
+//a = ifj16.readInt();
 int vysl;
 if (a  0) { // nacitani zaporneho cisla nemusite podporovat
-ifj16.print("Faktorial nelze spocitat!");
+ifj16.print("Faktorcitat!");
 }
 else {
 vysl = 1;

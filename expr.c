@@ -81,6 +81,9 @@ int pop(){
    if ((vysledek=strcmp(pole,"p"))==0) push(2,zasobnik);
    else if ((vysledek=strcmp(pole,"E+E"))==0) push(2,zasobnik);
    else if ((vysledek=strcmp(pole,"E-E"))==0) push(2,zasobnik);
+   else if ((vysledek=strcmp(pole,"i"))==0) push(2,zasobnik);
+   else if ((vysledek=strcmp(pole,"d"))==0) push(2,zasobnik);
+   else if ((vysledek=strcmp(pole,"s"))==0) push(2,zasobnik);
    else if ((vysledek=strcmp(pole,"E*E"))==0) push(2,zasobnik);
    else if ((vysledek=strcmp(pole,"E/E"))==0) push(2,zasobnik);
    else if ((vysledek=strcmp(pole,"E("))==0) push(2,zasobnik);
@@ -94,12 +97,16 @@ printf("BOHUZEL \n"); return SYNTAX_ERROR;
 int boolexpression(){
       int result;
 }
+
 int expression(){
-		int result;
-      printf("KOKOS\n");
-   	if ((result = stackInit())) { return result; }
+      int result;
+      if (token.type == SEMICOLON) { return SYNTAX_ERROR; }
+      printf("ZACATEK\n\n\n");
+      if ((result = stackInit())) { return result; }
       if ((result = co_delat())) { return result; }
-   	return result;
+      cisteni();
+      printf("KONEC\n\n\n");
+      return result;
          
 }
 
@@ -108,6 +115,9 @@ struct expStack* nejblizsi_terminal(){
    while(vys!=NULL){
       switch(vys->data){
          case 'p':
+         case 'i':
+         case 'd':
+         case 's':
          case '$':
          case '+':
          case '-':
@@ -188,6 +198,16 @@ int co_delat(){
    }
 
    
+}
+
+void cisteni(){
+
+while(zasobnik!=NULL){
+   struct expStack *tmp=zasobnik;
+   tmp->data="";
+   zasobnik=zasobnik->next;
+   free(tmp);
+}
 }
 
 int pocetPrvkuNaZasobniku(){
