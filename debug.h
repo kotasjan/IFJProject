@@ -31,6 +31,7 @@
     do { fprintf(stderr, "DEBUG %s%s%s:%d:<%s>: " M "", YELLOW , __FILE__, NRM, __LINE__, __func__, ##__VA_ARGS__); } while(0)
 
 #endif
+char giveTok(tToken *token);
 char *printTok(tToken *token);
 void printTS(table *TS);
 void printFunction(tFunc *func);

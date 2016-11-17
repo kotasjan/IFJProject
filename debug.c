@@ -237,3 +237,47 @@ char *printTok(tToken *token)
          break;
    }
 }
+
+char giveTok(tToken *token){
+switch(token->type)
+   {
+      case FULL_IDENTIFIER:
+      case IDENTIFIER:
+         return 'p';
+      case STRING:
+      case CHAIN:   
+         return 's';
+      case INT:           
+      case LIT_INT:
+         return 'i';
+      case DOUBLE:
+      case LIT_DOUBLE:
+         return 'd';
+       case LEFT_BRACKET:
+         return '(';
+      case RIGHT_BRACKET:
+         return ')';
+      case PLUS: 
+         return '+';
+      case MINUS:
+         return '-';
+      case DIVISION:
+         return '/';
+      case MULTIPLIER:
+         return '*';
+      case GREATER_OR_EQUAL:
+         return 'g';
+      case LESS_OR_EQUAL:
+         return 'o';
+      case NOT_EQUAL:
+         return 'n';
+      case EQUAL:
+         return 'e';
+      case LESS:
+         return '<';
+      case GREATER:
+         return '>';
+      case SEMICOLON:
+         return '$';
+   }
+}
