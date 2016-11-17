@@ -1,6 +1,6 @@
 class Main {
-	static int a5 = 5;
-	něco
+	static double a = 5,5;
+
 	static void run(){
 		String za = "ahoj";
 	}
