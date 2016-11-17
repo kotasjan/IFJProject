@@ -10,6 +10,7 @@
 
 tToken token;
 table *globalTS = NULL;
+tTokenStack tokenStack;
 
 int parse()
 {
@@ -17,6 +18,7 @@ int parse()
    table TS;
    tsInit(&TS);
    globalTS = &TS;
+   tokenStack.active = false;
 
    if ((result = addIFJ16(&TS))) { return result; }
 
@@ -138,6 +140,13 @@ int strRovn()
       case ASSIGNMENT:
       {
          if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+         if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
+         {
+            memcpy(&tokenStack.token, &token, sizeof(tToken));
+            tokenStack.active = true;
+         }
+         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+         if (token.type != LEFT_BRACKET)
          if ((result = expression())) { return result; } 
          if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }

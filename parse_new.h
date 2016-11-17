@@ -1,6 +1,14 @@
 #pragma once
 #include "ial.h"
+#include "scaner.h"
 #include <stdlib.h>
+
+typedef struct
+{
+   tToken token;
+   bool active;
+
+} tTokenStack;
 
 typedef struct stack
 {
@@ -8,6 +16,7 @@ typedef struct stack
    struct stack *next;
 } tStack;
 
+extern tTokenStack tokenStack;
 extern table *globalTS;
 
 int parse();   
