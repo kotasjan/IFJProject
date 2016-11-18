@@ -282,7 +282,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 
 				if (c == '0' || c == '1' || c == '2' || c == '3') 
 				{
-					octave += c * 64;
+					octave += (c-'0') * 64;
 					state = IS_STRING_LIT_ESCAPE_OCT_2;						
 				}
 				else
@@ -297,7 +297,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				
 				if (isdigit(c) && c != '9' && c != '8') 
 				{
-					octave += c * 8;
+					octave += (c-'0') * 8;
 					state = IS_STRING_LIT_ESCAPE_OCT_3;						
 				}
 				else
@@ -312,7 +312,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				
 				if (isdigit(c) && c != '9' && c != '8') 
 				{
-					octave += c;
+					octave += (c-'0');
 					
 					if (octave > 256 ) { free(data->id); return LEX_ERROR; }
 					
