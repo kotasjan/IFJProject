@@ -72,8 +72,23 @@ int length(char *s);
 
 char *substr(char *s, int i, int n);
 int compare(char *s1, char *s2);
-int find(char *s, char *search);
-char *sort(char *s);
+//int find(char *s, char *search);
+//char *sort(char *s);
+
+
+int readInt();
+double readDouble();
+String readString();
+void print_int(int x);
+void print_double(double x);
+void print_string(char * x);
+String sort(String s);
+void qpartition(char * pole, int left, int right, int * i, int * j);
+char * QuickSort(char * pole, int left, int right);
+int find(String s, String search);
+int BMA (char *P, char *T, char * CharJump);
+void ComputeJumps(char * P, char * CharJump);
+
 
 void tsInit(table *TS);
 
