@@ -1,0 +1,8 @@
+class Main 
+	static double a = 5 / 3 (* 2);
+
+	static void run(){
+		ifj16.print("ahoj");
+	}
+
+}
