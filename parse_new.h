@@ -3,20 +3,8 @@
 #include "scaner.h"
 #include <stdlib.h>
 
-typedef struct
-{
-   tToken token[2];
-   unsigned top;
 
-} tTokenStack;
 
-typedef struct stack
-{
-   table *table;
-   struct stack *next;
-} tStack;
-
-extern tTokenStack tokenStack;
 extern table *globalTS;
 
 int parse();   

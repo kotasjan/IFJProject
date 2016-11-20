@@ -5,6 +5,8 @@
 
 #define TABLE_SIZE 100
 
+typedef char * String;
+
 
 typedef enum{
    TYPE_INT = 300,
@@ -23,14 +25,7 @@ typedef struct funcParam
    struct funcParam *nextParam;
 } tFuncParam;
 
-typedef struct 
-{
-   char *name;
-   unsigned paramCnt;
-   tType retType;
-   tFuncParam *param;
-   bool isDeclared;
-} tFunc;
+
 
 typedef struct 
 {
@@ -53,12 +48,29 @@ typedef struct tList{
 
 typedef struct tList* table[TABLE_SIZE];
 
+typedef struct stack
+{
+   table *table;
+   struct stack *next;
+} tStack;
+
+
 typedef struct 
 {
    char *name;
    table symbolTable;
    bool isDeclared;
 } tClass;
+
+typedef struct 
+{
+   char *name;
+   unsigned paramCnt;
+   tType retType;
+   tFuncParam *param;
+   tStack *funcStack;
+   bool isDeclared;
+} tFunc;
 
 
 int hashFunction(const char *key, unsigned htab_size);
