@@ -5,12 +5,12 @@
 #include "debug.h"
 #include "ifj16Func.h"
 #include "expr.h"
+#include "tokenFifo.h"
 #include <string.h>
 
 
 tToken token;
 table *globalTS = NULL;
-tTokenStack tokenStack;
 
 int parse()
 {
@@ -18,7 +18,6 @@ int parse()
    table TS;
    tsInit(&TS);
    globalTS = &TS;
-   tokenStack.top = 0;
 
    if ((result = addIFJ16(&TS))) { return result; }
 
@@ -27,11 +26,11 @@ int parse()
    
    if (controlMainRun()) { return SYNTAX_ERROR; }
 
-   printTS(globalTS);
+   //printTS(globalTS);
 
    setFileToBegin(); // nastavi soubor na zacatek, 2. pruchod
 
-   if ((result = semProg(&TS))) { printf("rtt"); return result; }
+   if ((result = semStart(&TS))) { printf("rtt"); return result; }
 
    return SUCCESS;
 }
@@ -87,7 +86,6 @@ int parametrVolani()
 int rovnFun()
 {
    int result;
-         printf("%s\n",printTok(&token));
 
    switch (token.type)
    {
@@ -140,19 +138,30 @@ int strRovn()
       case ASSIGNMENT:
       {
          if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+         tToken tmp;
+         memcpy(&tmp, &token, sizeof(tToken));
          if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
          {
-            memcpy(&tokenStack.token[tokenStack.top++], &token, sizeof(tToken));
-            
+            if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+            if (token.type != LEFT_BRACKET)
+            {
+               if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
+               if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
+               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               if ((result = expression())) { return result; } 
+            }
+            else
+            {
+               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               if ((result = parametrVolani())) { return result; }
+               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+            }
          }
-         printf("ee %s\n",printTok(&tokenStack.token) );
-         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-         if (token.type != LEFT_BRACKET)
+         else
          {
-            memcpy(&tokenStack.token[tokenStack.top++], &token, sizeof(tToken));
+            if ((result = expression())) { return result; } 
          }
-         printf("%d\n", tokenStack.token[--tokenStack.top].type);
-         if ((result = expression())) { return result; } 
+
          if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
@@ -440,8 +449,10 @@ int veFunkci(tStack *stack)
       case RETURN:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = expression())) { return result; } 
-         if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         if (token.type != SEMICOLON) {  
+            if ((result = expression())) { return result; } 
+            if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
          if ((result = veFunkci(stack))) { return result; } 
          return result; 
@@ -451,7 +462,7 @@ int veFunkci(tStack *stack)
    }
 }
 
-int addParamToStack(tFunc *func, tStack *stack)
+int addParamToStack(tFunc *func)
 {
    int result;
 
@@ -466,7 +477,7 @@ int addParamToStack(tFunc *func, tStack *stack)
          var->type = param->type;
          var->init = true;
 
-         result = tsInsert(stack->table, var->id, var);
+         result = tsInsert(func->funcStack->table, var->id, var);
 
          if (result == 1) { return INTERNAL_ERROR; }
          if (result == 2) { debug("Redeklarace promenne '%s'\n", func->name); return SYNTAX_ERROR; }
@@ -552,19 +563,19 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
 
          table table;
          tsInit(&table);
-         tStack *stack = createStack(prevStack, &table); 
-         if ((result = addParamToStack(func, stack))) { return result; }
+         func->funcStack = createStack(prevStack, &table); 
+         if ((result = addParamToStack(func))) { return result; }
          if (tsInsertFunction(TS, func)) { return INTERNAL_ERROR; }
 
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // {
          if (token.type != LEFT_CURLY_BRACKET) { return SYNTAX_ERROR; } 
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // telo nebo }
-         if ((result = veFunkci(stack))) { return result; }
+         if ((result = veFunkci(func->funcStack))) { return result; }
 
          if (token.type != RIGHT_CURLY_BRACKET) { return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
 
-         free(stack);
+         free(func->funcStack);
          prevStack->next = NULL;
 
          return result;         
@@ -582,8 +593,31 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
          if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
          
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = expression())) { debug("ERROR - v exp'\n"); return result; }
-         if (token.type != SEMICOLON) { debug("chyby ;\n"); return SYNTAX_ERROR; }
+         tToken tmp;
+         memcpy(&tmp, &token, sizeof(tToken));
+         if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
+         {
+            if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+            if (token.type != LEFT_BRACKET)
+            {
+               if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
+               if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
+               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               if ((result = expression())) { return result; } 
+            }
+            else
+            {
+               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               if ((result = parametrVolani())) { return result; }
+               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+            }
+         }
+         else
+         {
+            if ((result = expression())) { return result; } 
+         }
+
+         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
 
          return result;
@@ -767,6 +801,7 @@ int prvkyTridy(table *TS, tStack *stack)
          if ((result = type(&typ))) { return result; }
          if (token.type != IDENTIFIER) { debug("neni ID -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          char *id = token.id;
+
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = zavStrRov(TS, typ, id, stack))) { return result; }
 

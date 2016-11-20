@@ -41,7 +41,7 @@ int push(int znacka,struct expStack *pom){
          zasobnik=tmp;
       }
       else{
-         printf("Ted by se to hodilo \n\n");
+       //  printf("Ted by se to hodilo \n\n");
 
          zasobnik->next=tmp;
       }
@@ -89,7 +89,7 @@ int pop(){
    else if ((vysledek=strcmp(pole,"E/E"))==0) push(2,zasobnik);
    else if ((vysledek=strcmp(pole,"E("))==0) push(2,zasobnik);
    else{
-printf("BOHUZEL \n"); return SYNTAX_ERROR;
+//printf("BOHUZEL \n"); return SYNTAX_ERROR;
    }     
    vypis_zasobniku();
    
@@ -101,18 +101,13 @@ int boolexpression(){
 
 int expression(){
 
-      printf("eee %u\n", tokenStack.top);
-      if( tokenStack.top)
-      {
-         printf("ww  %s\n",printTok(&tokenStack.token[0]) );
-      }
       int result;
       if (token.type == SEMICOLON) { return SYNTAX_ERROR; }
-      printf("ZACATEK\n\n\n");
+     // printf("ZACATEK\n\n\n");
       if ((result = stackInit())) { return result; }
       if ((result = co_delat())) { return result; }
       cisteni();
-      printf("KONEC\n\n\n");
+     // printf("KONEC\n\n\n");
       return result;
          
 }
@@ -139,7 +134,7 @@ struct expStack* nejblizsi_terminal(){
       }
       vys=vys->next;
    }
-   printf("Neco je spatne!");
+  // printf("Neco je spatne!");
 
 }
 
@@ -150,18 +145,18 @@ int co_delat(){
    int result;
    struct expStack *pom;
    pom= nejblizsi_terminal();
-   printf("POM JE:%c\n",pom->data);
-   printf("TOKEN JE: %c\n",giveTok(&token));
+  // printf("POM JE:%c\n",pom->data);
+  // printf("TOKEN JE: %c\n",giveTok(&token));
    vypis_zasobniku();
    for(int i=0;((konec==false)&&(i<VELIKOST_TABULKY));i++){
       //printf("Hledam ... %d.Pruchod\n",i);
       if(giveTok(&token)==PrecedencniTabulka[0][i]){
-         printf("Nasel jsem shodu pro token na %d.prvku\n",i);
+      //   printf("Nasel jsem shodu pro token na %d.prvku\n",i);
          vysledek2=i;
       }
       if(pom->data==PrecedencniTabulka[i][0]){
          vysledek1=i;
-         printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
+      //   printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
       }
       if((vysledek1!=0)&&(vysledek2!=0)){
          konec=true;
@@ -172,32 +167,35 @@ int co_delat(){
          if ((result = push(1,pom))) { return result; }
          vypis_zasobniku();
          if ((result = push(0,pom))) { return result; }
-         if((result = getToken(&token))) {
-            debug("%s\n", "ERROR - v LEX"); 
-            return result; 
-         }
+            if((result = getToken(&token))) {
+               debug("%s\n", "ERROR - v LEX"); 
+               return result; 
+            }
+         
          vypis_zasobniku();
          if ((result = co_delat())) { return result; }
 
 
       break;
       case '>': 
-                printf("Skocilo to do >\n");
+           //     printf("Skocilo to do >\n");
                 vypis_zasobniku();
                 if ((result = pop())) { return result; }
                 if ((result = co_delat())) { return result; }
       break;
-      case '=': printf("Skocilo to do =\n");
+      case '=': //printf("Skocilo to do =\n");
                 vypis_zasobniku();
                 if ((result = pop())) { return result; }
-                if((result = getToken(&token))) {
-                  debug("%s\n", "ERROR - v LEX"); 
-                  return result; 
+
+                  if((result = getToken(&token))) {
+                     debug("%s\n", "ERROR - v LEX"); 
+                     return result; 
                   }
+               
                 vypis_zasobniku();
                 if ((result = co_delat())) { return result; }
       break;
-      case '-': printf("Skocilo to do -\n");
+      case '-':// printf("Skocilo to do -\n");
                 vypis_zasobniku();
                 printf("%c\n",giveTok(&token));
       break;
@@ -234,12 +232,12 @@ void vypis_zasobniku(){
    struct expStack *aktualni;
    aktualni=zasobnik;
    if(aktualni!=NULL){
-	  printf("Zasobnik obsahuje polozky: ");
+	  //printf("Zasobnik obsahuje polozky: ");
 	  do{
-		 printf("%c ",aktualni->data);
+		// printf("%c ",aktualni->data);
 		 aktualni=aktualni->next;
 	    }while(aktualni!=NULL);
-	printf("\n");
+	//printf("\n");
 }
 
 }
