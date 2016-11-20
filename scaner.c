@@ -4,6 +4,7 @@
 #include "scaner.h"
 #include "ial.h"
 #include "ifj.h" 
+#include "tokenFifo.h"
 
 // To co muze token vratit
 
@@ -37,6 +38,15 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 	int state = IS_DEFAULT;
 	int c;
 	int octave = 0;
+
+	tToken *tmp = getTokenFifo();
+	if (tmp)
+	{
+		memcpy(data, tmp, sizeof(tToken));
+		return SUCCESS;
+	}
+
+
 
 	//tToken data;				// vnitrni struktura tokenu, pri kazdem zavolani fce se vytvori tento vnitrni token kam se ukladaji nactene znaky (= jmena identifikatoru, konstatnty)
 								// pokud se najde ID tak se nactene znaky (resp. jejich ukazatel?) pouziji jako klic do hash table a vlozi se do ni novy zaznam.
