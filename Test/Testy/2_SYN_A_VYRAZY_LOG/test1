@@ -1,0 +1,11 @@
+class Main 
+	static int a;
+
+	static void run(){
+		if(a<<5){
+			ifj16.print("neco");
+		}else{
+			ifj16.print("neco2");
+		}
+	}
+}
