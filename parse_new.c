@@ -30,7 +30,7 @@ int parse()
 
    setFileToBegin(); // nastavi soubor na zacatek, 2. pruchod
 
-   if ((result = semStart(&TS))) { printf("rtt"); return result; }
+   //if ((result = semStart(&TS))) { printf("rtt"); return result; }
 
    return SUCCESS;
 }
@@ -103,7 +103,7 @@ int rovnFun()
       case ASSIGNMENT:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = expression())) { return result; }
+         if ((result = expression(false))) { return result; }
          if ((token.type != SEMICOLON)) { return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
@@ -148,7 +148,7 @@ int strRovn()
                if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
                if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
                if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-               if ((result = expression())) { return result; } 
+               if ((result = expression(false))) { return result; } 
             }
             else
             {
@@ -159,7 +159,7 @@ int strRovn()
          }
          else
          {
-            if ((result = expression())) { return result; } 
+            if ((result = expression(false))) { return result; } 
          }
 
          if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
@@ -348,7 +348,7 @@ int blok()
       case RETURN:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = expression())) { return result; } 
+         if ((result = expression(false))) { return result; } 
          if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
          if ((result = blok())) { return result; } 
@@ -392,7 +392,7 @@ int veFunkci(tStack *stack)
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("IF nema ( -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = boolExp())) { return result; } 
+         if ((result = expression(true))) { return result; } 
          if (token.type != RIGHT_BRACKET) { debug("IF nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return result; }
@@ -450,7 +450,7 @@ int veFunkci(tStack *stack)
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != SEMICOLON) {  
-            if ((result = expression())) { return result; } 
+            if ((result = expression(false))) { return result; } 
             if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
@@ -479,7 +479,7 @@ int addParamToStack(tFunc *func)
 
          result = tsInsert(func->funcStack->table, var->id, var);
 
-         if (result == 1) { return INTERNAL_ERROR; }
+         if ((result == 1)+5) { return INTERNAL_ERROR; }
          if (result == 2) { debug("Redeklarace promenne '%s'\n", func->name); return SYNTAX_ERROR; }
          debug("Parametr funkce '%s' pridan do TS funkce\n", func->name);
 
@@ -603,7 +603,7 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
                if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
                if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
                if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-               if ((result = expression())) { return result; } 
+               if ((result = expression(false))) { return result; } 
             }
             else
             {
@@ -614,7 +614,7 @@ int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
          }
          else
          {
-            if ((result = expression())) { return result; } 
+            if ((result = expression(false))) { return result; } 
          }
 
          if (token.type != SEMICOLON) { return SYNTAX_ERROR; }

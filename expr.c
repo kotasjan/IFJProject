@@ -4,10 +4,11 @@
 #include "debug.h"
 #include "ifj.h"
 #include "parse_new.h"
+#include <stdbool.h>
 
 struct expStack *zasobnik;
 tToken token;
-
+bool podminka=false;
 
 int stackInit(){
 	struct expStack *tmp=(struct expStack*)malloc(sizeof(struct expStack));
@@ -29,19 +30,20 @@ int push(int znacka,struct expStack *pom){
 		return INTERNAL_ERROR;
 	}
 	if(znacka==0){
+      printf("AAAAAAAAAAAAAAAAAAAAAAA%c\n",giveTok(&token));
 		 tmp->data=giveTok(&token);
 		 tmp->next=zasobnik;
 		 zasobnik=tmp;
 	}
    
    if(znacka==1){
-      tmp->data='<';
+      tmp->data=':';
       tmp->next=pom;
       if(pom==zasobnik){
          zasobnik=tmp;
       }
       else{
-       //  printf("Ted by se to hodilo \n\n");
+         printf("Ted by se to hodilo \n\n");
 
          zasobnik->next=tmp;
       }
@@ -53,6 +55,8 @@ int push(int znacka,struct expStack *pom){
       tmp->next=zasobnik;
       zasobnik=tmp;
    }
+
+   
    return SUCCESS;
 }
 
@@ -62,13 +66,13 @@ int pop(){
    int i=0;
    int y=0;
    int vysledek;
-   while(zasobnik->data!='<'){
+   while(zasobnik->data!=':'){
       i++;
       zasobnik=zasobnik->next;
    } 
    zasobnik=tmp;
    char pole[i+1];
-   while(zasobnik->data!='<'){
+   while(zasobnik->data!=':'){
       pole[y]=zasobnik->data;
       y++;
       struct expStack *tmp=zasobnik;
@@ -89,8 +93,26 @@ int pop(){
    else if ((vysledek=strcmp(pole,"E/E"))==0) push(2,zasobnik);
    else if ((vysledek=strcmp(pole,"E("))==0) push(2,zasobnik);
    else{
-//printf("BOHUZEL \n"); return SYNTAX_ERROR;
-   }     
+      if(podminka==true){
+         printf("ROZHODUJU SE KURVA %s \n",pole);
+         if ((vysledek=strcmp(pole,"<E"))==0) push(0,zasobnik);
+         else if ((vysledek=strcmp(pole,">E"))==0) push(0,zasobnik);
+         else if ((vysledek=strcmp(pole,"=>E"))==0) push(0,zasobnik);
+         else if ((vysledek=strcmp(pole,"<=E"))==0) push(0,zasobnik);
+         else if ((vysledek=strcmp(pole,"==E"))==0) push(0,zasobnik);
+         else if ((vysledek=strcmp(pole,"!=E"))==0) push(0,zasobnik);
+         else if ((vysledek=strcmp(pole,"E<E"))==0) push(2,zasobnik);
+         else {
+            printf("Ale jsem v pici\n");
+            return SYNTAX_ERROR;
+         }
+      }
+      else{
+         printf("Ale jsem v pici\n");
+            return SYNTAX_ERROR;
+         }
+      }     
+      printf("SISAY\n");
    vypis_zasobniku();
    
    return SUCCESS;
@@ -99,15 +121,15 @@ int boolexpression(){
       int result;
 }
 
-int expression(){
-
+int expression(bool logic){
+      if ( logic==true ) podminka=true;
       int result;
       if (token.type == SEMICOLON) { return SYNTAX_ERROR; }
-     // printf("ZACATEK\n\n\n");
+     printf("ZACATEK\n\n\n");
       if ((result = stackInit())) { return result; }
       if ((result = co_delat())) { return result; }
       cisteni();
-     // printf("KONEC\n\n\n");
+     printf("KONEC\n\n\n");
       return result;
          
 }
@@ -127,14 +149,19 @@ struct expStack* nejblizsi_terminal(){
          case '/': 
          case '(':
          case ')':
+         case '<':
+         case '>':
+         case '=':
+         case '!':
          
          return vys;
          break;
+         case 'r': return SYNTAX_ERROR;
          default: break;
       }
       vys=vys->next;
    }
-  // printf("Neco je spatne!");
+  printf("Neco je spatne!");
 
 }
 
@@ -145,23 +172,25 @@ int co_delat(){
    int result;
    struct expStack *pom;
    pom= nejblizsi_terminal();
-  // printf("POM JE:%c\n",pom->data);
-  // printf("TOKEN JE: %c\n",giveTok(&token));
+   vypis_zasobniku();
+   printf("POM JE:%c\n",pom->data);
+   printf("TOKEN JE: %c %d \n",giveTok(&token),token.type);
    vypis_zasobniku();
    for(int i=0;((konec==false)&&(i<VELIKOST_TABULKY));i++){
       //printf("Hledam ... %d.Pruchod\n",i);
       if(giveTok(&token)==PrecedencniTabulka[0][i]){
-      //   printf("Nasel jsem shodu pro token na %d.prvku\n",i);
+         printf("Nasel jsem shodu pro token na %d.prvku\n",i);
          vysledek2=i;
       }
       if(pom->data==PrecedencniTabulka[i][0]){
          vysledek1=i;
-      //   printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
+         printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
       }
       if((vysledek1!=0)&&(vysledek2!=0)){
          konec=true;
       }
    }
+   if((vysledek2==16)&&(vysledek1==17)) return SUCCESS;
    switch(PrecedencniTabulka[vysledek1][vysledek2]){
       case '<': 
          if ((result = push(1,pom))) { return result; }
@@ -178,12 +207,12 @@ int co_delat(){
 
       break;
       case '>': 
-           //     printf("Skocilo to do >\n");
+                printf("Skocilo to do >\n");
                 vypis_zasobniku();
                 if ((result = pop())) { return result; }
                 if ((result = co_delat())) { return result; }
       break;
-      case '=': //printf("Skocilo to do =\n");
+      case '=': printf("Skocilo to do =\n");
                 vypis_zasobniku();
                 if ((result = pop())) { return result; }
 
@@ -195,7 +224,7 @@ int co_delat(){
                 vypis_zasobniku();
                 if ((result = co_delat())) { return result; }
       break;
-      case '-':// printf("Skocilo to do -\n");
+      case '-': printf("Skocilo to do -\n");
                 vypis_zasobniku();
                 printf("%c\n",giveTok(&token));
       break;
@@ -232,12 +261,12 @@ void vypis_zasobniku(){
    struct expStack *aktualni;
    aktualni=zasobnik;
    if(aktualni!=NULL){
-	  //printf("Zasobnik obsahuje polozky: ");
+	  printf("Zasobnik obsahuje polozky: ");
 	  do{
-		// printf("%c ",aktualni->data);
+		 printf("%c ",aktualni->data);
 		 aktualni=aktualni->next;
 	    }while(aktualni!=NULL);
-	//printf("\n");
+	printf("\n");
 }
 
 }

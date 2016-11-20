@@ -881,7 +881,7 @@ int blok(tStack *stack)
    return SUCCESS;
 
 }
-
+/*
 int expression()
 {
    int result;
@@ -911,7 +911,7 @@ int expression()
    }
 
 }
-
+*/
 int item()
 {
    int result;

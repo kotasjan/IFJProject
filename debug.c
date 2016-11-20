@@ -283,5 +283,6 @@ switch(token->type)
          return '>';
       case SEMICOLON:
          return '$';
+      default : return 'r';
    }
 }
