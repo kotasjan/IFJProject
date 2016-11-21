@@ -30,7 +30,7 @@ int push(int znacka,struct expStack *pom){
 		return INTERNAL_ERROR;
 	}
 	if(znacka==0){
-      printf("AAAAAAAAAAAAAAAAAAAAAAA%c\n",giveTok(&token));
+     // printf("AAAAAAAAAAAAAAAAAAAAAAA%c\n",giveTok(&token));
 		 tmp->data=giveTok(&token);
 		 tmp->next=zasobnik;
 		 zasobnik=tmp;
@@ -43,7 +43,7 @@ int push(int znacka,struct expStack *pom){
          zasobnik=tmp;
       }
       else{
-         printf("Ted by se to hodilo \n\n");
+         //printf("Ted by se to hodilo \n\n");
 
          zasobnik->next=tmp;
       }
@@ -94,7 +94,7 @@ int pop(){
    else if ((vysledek=strcmp(pole,"E("))==0) push(2,zasobnik);
    else{
       if(podminka==true){
-         printf("ROZHODUJU SE KURVA %s \n",pole);
+         //printf("ROZHODUJU SE KURVA %s \n",pole);
          if ((vysledek=strcmp(pole,"<E"))==0) push(0,zasobnik);
          else if ((vysledek=strcmp(pole,">E"))==0) push(0,zasobnik);
          else if ((vysledek=strcmp(pole,"=>E"))==0) push(0,zasobnik);
@@ -103,16 +103,16 @@ int pop(){
          else if ((vysledek=strcmp(pole,"!=E"))==0) push(0,zasobnik);
          else if ((vysledek=strcmp(pole,"E<E"))==0) push(2,zasobnik);
          else {
-            printf("Ale jsem v pici\n");
+            //printf("Ale jsem v pici\n");
             return SYNTAX_ERROR;
          }
       }
       else{
-         printf("Ale jsem v pici\n");
+         //printf("Ale jsem v pici\n");
             return SYNTAX_ERROR;
          }
       }     
-      printf("SISAY\n");
+      
    vypis_zasobniku();
    
    return SUCCESS;
@@ -161,7 +161,7 @@ struct expStack* nejblizsi_terminal(){
       }
       vys=vys->next;
    }
-  printf("Neco je spatne!");
+  //printf("Neco je spatne!");
 
 }
 
@@ -173,18 +173,18 @@ int co_delat(){
    struct expStack *pom;
    pom= nejblizsi_terminal();
    vypis_zasobniku();
-   printf("POM JE:%c\n",pom->data);
-   printf("TOKEN JE: %c %d \n",giveTok(&token),token.type);
+   //printf("POM JE:%c\n",pom->data);
+   //printf("TOKEN JE: %c %d \n",giveTok(&token),token.type);
    vypis_zasobniku();
    for(int i=0;((konec==false)&&(i<VELIKOST_TABULKY));i++){
       //printf("Hledam ... %d.Pruchod\n",i);
       if(giveTok(&token)==PrecedencniTabulka[0][i]){
-         printf("Nasel jsem shodu pro token na %d.prvku\n",i);
+         //printf("Nasel jsem shodu pro token na %d.prvku\n",i);
          vysledek2=i;
       }
       if(pom->data==PrecedencniTabulka[i][0]){
          vysledek1=i;
-         printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
+         //printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
       }
       if((vysledek1!=0)&&(vysledek2!=0)){
          konec=true;
@@ -207,12 +207,12 @@ int co_delat(){
 
       break;
       case '>': 
-                printf("Skocilo to do >\n");
+                //printf("Skocilo to do >\n");
                 vypis_zasobniku();
                 if ((result = pop())) { return result; }
                 if ((result = co_delat())) { return result; }
       break;
-      case '=': printf("Skocilo to do =\n");
+      case '=': //printf("Skocilo to do =\n");
                 vypis_zasobniku();
                 if ((result = pop())) { return result; }
 
@@ -224,7 +224,7 @@ int co_delat(){
                 vypis_zasobniku();
                 if ((result = co_delat())) { return result; }
       break;
-      case '-': printf("Skocilo to do -\n");
+      case '-': //printf("Skocilo to do -\n");
                 vypis_zasobniku();
                 printf("%c\n",giveTok(&token));
       break;
