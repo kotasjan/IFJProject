@@ -2,9 +2,9 @@ class Main
 	static int a = 2;
 
 	static void run(){
-		if(a > 5 - a ){
+		if(Main.a > 5 - Main.a ){
 			
-		}else if(a >= 3){
+		}else if(Main.a >= 3){
 
 		}else{
 
