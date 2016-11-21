@@ -4,8 +4,10 @@ class Main {
 	static void run(){
 		if(Main.a > 5 - Main.a ){
 			
-		}else if(Main.a >= 3){
-
+		}else{
+			if(Main.a >= 3){
+			
+			}
 		}else{
 
 		}
