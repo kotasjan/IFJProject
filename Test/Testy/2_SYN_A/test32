@@ -1,0 +1,7 @@
+class Main 
+	static void b = 5;
+
+	static void run(){
+
+	}
+}

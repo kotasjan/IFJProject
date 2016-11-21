@@ -81,3 +81,27 @@ Dominik:
 
 Pavel:
 - dodělat parser
+
+---------------------------------------------------------------------------------------
+
+Zápis schůze 21.11.2016
+
+- v LA opravit LEX_ERR pro diakritiku např slovo "něco"
+- do tokenu přidat hodnotu (int, double nebo String) v unii
+- přebytečné výpisy předělat do debugu
+- (uvolňovat paměť)
+
+
+Honza:
+- pokračovat v tvorbě testů
+- otestovat vestavěné funkce
+- začít dělat dokumentaci
+
+Michal:
+- semantická analýza
+
+Pavel:
+- 3-adresný kód
+
+Dominik:
+- pomoci s 3-adresným kódem
