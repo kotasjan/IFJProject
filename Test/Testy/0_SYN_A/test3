@@ -4,8 +4,9 @@ class Main {
 	static void run(){
 		if(Main.a + 1 > 1 ){
 			
-		}else if(Main.a + Main.a >= 3){
-
+		}else{
+			if(Main.a + Main.a >= 3){
+			}
 		}else{
 
 		}
