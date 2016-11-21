@@ -392,7 +392,7 @@ int veFunkci(tStack *stack)
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("IF nema ( -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = expression(true))) { return result; } 
+         if ((result = expression(true, stack))) { return result; } 
          if (token.type != RIGHT_BRACKET) { debug("IF nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return result; }

@@ -1,12 +1,22 @@
 class Main
 {
+static int b;
 static void run()
 {
-	int a=((5));
-	int b=a;
-	int c=b+a;
-	c= a+b+(c+a);
-	if((a+4)<5+a+b*9+5)
+	int b;
+
+	if(main.b >= 5)
+	{
+		if(b < a)
+		{
+			if(b +b <a+ 5)
+			{
+
+			}else{}
+
+		}else{}
+
+	}else{}
 
 }
 }
