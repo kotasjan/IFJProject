@@ -13,9 +13,9 @@ RED=$(tput setaf 1)
 for path in $FILES; do
    path=`echo $path` 
    path=`echo $path | sed 's/^.\//Test\/Testy\//g'` 
-   RET_CODE=`echo $path | grep -o -E '[0-9]+' | head -1 | sed -e 's/^0\+//'`
+   RET_CODE=`echo $path | grep -o -E '[0-9]+' | head -1 | sed -e 's/^\+//'`
    $r./prekladac $path >/dev/null 2>&1
-   ret=$?   
+   ret=$?
    if [ $RET_CODE -eq $ret ]; then
       printf "$path - ${GREEN}OK\n${NORMAL}"
    else
