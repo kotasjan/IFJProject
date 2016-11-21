@@ -1,0 +1,19 @@
+class Main {
+	static int a = 5;
+
+	static void run(){
+		if(Main.a > 1){
+			if(Main.a > 1){
+				if(Main.a > 1){
+					
+				}else{
+
+				}
+			}else{
+
+			}
+		}else{
+
+		}
+	}
+}
