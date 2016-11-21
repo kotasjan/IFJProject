@@ -7,6 +7,8 @@ class Main {
 		}else{
 			if(Main.a >= 3){
 			
+			}else{
+			
 			}
 		}else{
 

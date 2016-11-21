@@ -6,6 +6,9 @@ class Main {
 			
 		}else{
 			if(Main.a + Main.a >= 3){
+			
+			}else{
+
 			}
 		}else{
 
