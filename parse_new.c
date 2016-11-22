@@ -22,18 +22,167 @@ int parse()
    if ((result = addIFJ16(&TS))) { return result; }
 
    if ((result = getToken(&token))) { debug("%s\n", "Chyba v prvnim tokenu"); return result; }
-   if ((result = prog(&TS))) { return result; }
-   
+   if ((result = GlobalWalkthrought())) { return result; }
+
    if (controlMainRun()) { return SYNTAX_ERROR; }
 
    //printTS(globalTS);
 
    setFileToBegin(); // nastavi soubor na zacatek, 2. pruchod
 
-   //if ((result = semStart(&TS))) { printf("rtt"); return result; }
+   getToken(&token);
+   if ((result = prog(&TS))) { return result; }
+   printf("ok\n");
+
+  // if ((result = semStart())) { printf("rtt"); return result; }
 
    return SUCCESS;
 }
+
+
+
+// VSE OK - HOTOVO
+int prog()
+{
+   int result;
+
+   switch (token.type)
+   {
+      // EOF
+      case END_OF_FILE: { return SUCCESS; }
+
+      // class ID { }
+      case CLASS:
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if (token.type != IDENTIFIER) { debug("%s\n", "ERROR: <class ID>"); return SYNTAX_ERROR; }
+
+         // pridani tridy do tabulky
+         tClass *class = getTS();
+
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if (token.type != LEFT_CURLY_BRACKET) { debug("chyby { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         tsInit(class->symbolTable);
+         if ((result = prvkyTridy(class->symbolTable))) { return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { debug("chyby } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = prog())) { return result; }
+         return SUCCESS;
+      
+      default:
+         break;
+   }
+
+   return SYNTAX_ERROR;
+}
+
+// VSE OK - HOTOVO
+int prvkyTridy(table *TS)
+{
+   int result;
+
+   switch (token.type)
+   {
+      case STATIC:
+      {
+         tType typ;
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = type(&typ))) { return result; }
+         if (token.type != IDENTIFIER) { debug("neni ID -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         char *id = token.id;
+
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = zavStrRov(TS, typ, id))) { return result; }
+
+         if ((result = prvkyTridy(TS))) { return result; }
+         return result;
+      }
+      default:
+         return SUCCESS;
+   }
+}
+
+
+int zavStrRov(table *TS, tType typ, char *id)
+{
+   int result;
+
+   switch (token.type)
+   {
+      // static int a;
+      case SEMICOLON:   
+      {
+         // jedna se o promenou, nemuze byt void
+         if (typ == TYPE_VOID) { debug("Promenna typu void\n"); return SEM_ERROR; } 
+         if (controlDecTable(TS, id)) { return SEM_ERROR; } // redeklarace
+         tVar *var; // inicializace dat
+         if (createVar(&var, id, typ, false)) { return INTERNAL_ERROR; }
+         if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
+         debug("Promenna %s byla pridana do TS\n", id);
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         return result;
+      }
+      // static int a(
+      case LEFT_BRACKET:
+      {
+         if (controlDecTable(TS, id)) { return SEM_ERROR; } // redeklarace
+         tFunc *func;
+         if (createFunc(&func, id, typ)) { return INTERNAL_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // (
+         if ((result = parametr(func))) { return result; }
+         if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }   // )
+         if (tsInsertFunction(TS, func)) { return INTERNAL_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // {
+         if (token.type != LEFT_CURLY_BRACKET) { return SYNTAX_ERROR; } 
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // telo nebo }
+         if ((result = veFunkci())) { return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { return SYNTAX_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         return result;         
+      }
+      case ASSIGNMENT:
+      {
+         // jedna se o promenou, nemuze byt void
+         if (typ == TYPE_VOID) { debug("Promenna typu void\n"); return SEM_ERROR; }
+         if (controlDecTable(TS, id)) { return SEM_ERROR; } // redeklarace
+         tVar *var; 
+         if (createVar(&var, id, typ, true)) { return INTERNAL_ERROR; } // inicializace dat
+         if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         if (expressionSkip()) { return SYNTAX_ERROR; }
+         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         return result;
+      }
+      default:
+         break;
+   }
+
+   return SYNTAX_ERROR;
+}
+
+int expressionSkip()
+  {
+   int result;
+ 
+    switch (token.type)
+    {
+       default:
+       {
+          int bracket = 1;
+          while(token.type != SEMICOLON)
+          {
+             if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }   
+             if(token.type == END_OF_FILE) { return SYNTAX_ERROR; } 
+          }
+          return result;
+       }
+    }
+ 
+    return SYNTAX_ERROR;
+  
+  }
 
 int dalsiParametrVolani()
 {
@@ -103,7 +252,7 @@ int rovnFun()
       case ASSIGNMENT:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = expression(false))) { return result; }
+         if ((result = expressionSkip())) { return result; }
          if ((token.type != SEMICOLON)) { return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
@@ -138,30 +287,7 @@ int strRovn()
       case ASSIGNMENT:
       {
          if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-         tToken tmp;
-         memcpy(&tmp, &token, sizeof(tToken));
-         if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
-         {
-            if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-            if (token.type != LEFT_BRACKET)
-            {
-               if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
-               if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
-               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-               if ((result = expression(false))) { return result; } 
-            }
-            else
-            {
-               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-               if ((result = parametrVolani())) { return result; }
-               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-            }
-         }
-         else
-         {
-            if ((result = expression(false))) { return result; } 
-         }
-
+         if (expressionSkip()) { return SYNTAX_ERROR; }
          if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          return result;
@@ -348,8 +474,10 @@ int blok()
       case RETURN:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = expression(false))) { return result; } 
-         if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         if (token.type != SEMICOLON) {  
+            if (expressionSkip()) { return SYNTAX_ERROR; } 
+            if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
          if ((result = blok())) { return result; } 
          return result; 
@@ -360,7 +488,7 @@ int blok()
    }
 }
 
-int veFunkci(tStack *stack)
+int veFunkci()
 {
    int result;
 
@@ -371,12 +499,10 @@ int veFunkci(tStack *stack)
       case STRING:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != IDENTIFIER) { debug("Nema ID -- %s\n", printTok(&token)); return result; }
-         if (controlDecTable(stack->table, token.id)) { return SYNTAX_ERROR; } // redeklarace promenne
-         debug("Promenna %s byla pridana do TS funkce\n", token.id);
+         if (token.type != IDENTIFIER) { debug("Nema ID -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = strRovn())) { return result; }
-         if ((result = veFunkci(stack))) { return result; }
+         if ((result = veFunkci())) { return result; }
          return result;
       }
       case FULL_IDENTIFIER:
@@ -384,77 +510,78 @@ int veFunkci(tStack *stack)
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = rovnFun())) { return result; } 
-         if ((result = veFunkci(stack))) { return result; } 
+         if ((result = veFunkci())) { return result; } 
          return result;
       }
       case IF:
       {
+
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (token.type != LEFT_BRACKET) { debug("IF nema ( -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_BRACKET) { debug("IF nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = expression(true))) { return result; } 
+         if (boolExp()) { return SYNTAX_ERROR; } 
          if (token.type != RIGHT_BRACKET) { debug("IF nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = blok())) { return result; }
-         if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != ELSE) { debug("IF nema ELSE ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = blok())) { return result; }
-         if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = veFunkci(stack))) { return result; } 
+         if ((result = veFunkci())) { return result; } 
          return result;
       }
       case DO:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (token.type != LEFT_CURLY_BRACKET) { debug("DO nema { -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_CURLY_BRACKET) { debug("DO nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = blok())) { return result; }
-         if (token.type != RIGHT_CURLY_BRACKET) { debug("DO nema } -- %s\n", printTok(&token)); return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { debug("DO nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != WHILE) { debug("DO nema WHILE ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (token.type != LEFT_BRACKET) { debug("DO nema ( -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_BRACKET) { debug("DO nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = boolExp())) { return result; } 
-         if (token.type != RIGHT_BRACKET) { debug("DO nema ) -- %s\n", printTok(&token)); return result; }
+         if (boolExp()) { return SYNTAX_ERROR; } 
+         if (token.type != RIGHT_BRACKET) { debug("DO nema ) -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != SEMICOLON) { debug("DO ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = veFunkci(stack))) { return result; } 
+         if ((result = veFunkci())) { return result; } 
          return result;  
       }
       case WHILE:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (token.type != LEFT_BRACKET) { debug("WHILE nema ( -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_BRACKET) { debug("WHILE nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = boolExp())) { return result; } 
-         if (token.type != RIGHT_BRACKET) { debug("WHILE nema ) -- %s\n", printTok(&token)); return result; }
+         if (boolExp()) { return SYNTAX_ERROR; }  
+         if (token.type != RIGHT_BRACKET) { debug("WHILE nema ) -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != LEFT_CURLY_BRACKET) { debug("WHILE nema { -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = blok())) { return result; }
-         if (token.type != RIGHT_CURLY_BRACKET) { debug("WHILE nema } -- %s\n", printTok(&token)); return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { debug("WHILE nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
-         if ((result = veFunkci(stack))) { return result; } 
+         if ((result = veFunkci())) { return result; } 
          return result; 
       }
       case RETURN:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != SEMICOLON) {  
-            if ((result = expression(false))) { return result; } 
+            if (expressionSkip()) { return SYNTAX_ERROR; } 
             if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
-         if ((result = veFunkci(stack))) { return result; } 
+         if ((result = veFunkci())) { return result; } 
          return result; 
       }
       default:
@@ -462,7 +589,7 @@ int veFunkci(tStack *stack)
    }
 }
 
-int addParamToStack(tFunc *func)
+int addParamToStack(tFunc *func, tStack *stack)
 {
    int result;
 
@@ -477,11 +604,11 @@ int addParamToStack(tFunc *func)
          var->type = param->type;
          var->init = true;
 
-         result = tsInsert(func->funcStack->table, var->id, var);
+         result = tsInsert(stack->table, var->id, var);
 
-         if ((result == 1)+5) { return INTERNAL_ERROR; }
+         if ((result == 1)) { return INTERNAL_ERROR; }
          if (result == 2) { debug("Redeklarace promenne '%s'\n", func->name); return SYNTAX_ERROR; }
-         debug("Parametr funkce '%s' pridan do TS funkce\n", func->name);
+         debug("Parametr '%s' funkce '%s' pridan do TS funkce\n", var->id, func->name);
 
          param = param->nextParam;
       }
@@ -504,130 +631,7 @@ int tsInsertFunction(table *TS, tFunc *func)
    return SUCCESS;
 
 }
-/*
-int expression()
-{
-   int result;
 
-   switch (token.type)
-   {
-      case END_OF_FILE:
-         return SYNTAX_ERROR;
-      default:
-      {
-         while(token.type != SEMICOLON)
-         {
-            if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }   
-            if (token.type == END_OF_FILE) return SYNTAX_ERROR;
-         }
-         return result;
-      }
-   }
-   return SYNTAX_ERROR;
-}*/
-
-int zavStrRov(table *TS, tType typ, char *id, tStack *prevStack)
-{
-   int result;
-
-   switch (token.type)
-   {
-      // static int a;
-      case SEMICOLON:   
-      {
-         // jedna se o promenou, nemuze byt void
-         if (typ == TYPE_VOID) { debug("Promenna typu void\n"); return SEM_ERROR; }
-         
-         if (controlDecTable(TS, id)) { return SYNTAX_ERROR; } // redeklarace
-
-         tVar *var; // inicializace dat
-         if (createVar(&var, id, typ, false)) { return INTERNAL_ERROR; }
-         if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
-         debug("Promenna %s byla pridana do TS\n", id);
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         return result;
-      }
-      // static int a(
-      case LEFT_BRACKET:
-      {
-
-         if (controlDecTable(TS, id)) { return SYNTAX_ERROR; }
-
-         tFunc *func;
-         if (createFunc(&func, id, typ)) { return INTERNAL_ERROR; }
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // (
-         if ((result = parametr(func))) { return result; }
-         if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }   // )
-
-         table table;
-         tsInit(&table);
-         func->funcStack = createStack(prevStack, &table); 
-         if ((result = addParamToStack(func))) { return result; }
-         if (tsInsertFunction(TS, func)) { return INTERNAL_ERROR; }
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // {
-         if (token.type != LEFT_CURLY_BRACKET) { return SYNTAX_ERROR; } 
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // telo nebo }
-         if ((result = veFunkci(func->funcStack))) { return result; }
-
-         if (token.type != RIGHT_CURLY_BRACKET) { return SYNTAX_ERROR; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-
-         free(func->funcStack);
-         prevStack->next = NULL;
-
-         return result;         
-      }
-      case ASSIGNMENT:
-      {
-         // jedna se o promenou, nemuze byt void
-         if (typ == TYPE_VOID) { debug("Promenna typu void\n"); return SEM_ERROR; }
-
-         // redeklarace
-         if (controlDecTable(TS, id)) { return SYNTAX_ERROR; }
-
-         tVar *var; 
-         if (createVar(&var, id, typ, true)) { return INTERNAL_ERROR; } // inicializace dat
-         if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
-         
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         tToken tmp;
-         memcpy(&tmp, &token, sizeof(tToken));
-         if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
-         {
-            if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-            if (token.type != LEFT_BRACKET)
-            {
-               if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
-               if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
-               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-               if ((result = expression(false))) { return result; } 
-            }
-            else
-            {
-               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-               if ((result = parametrVolani())) { return result; }
-               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-            }
-         }
-         else
-         {
-            if ((result = expression(false))) { return result; } 
-         }
-
-         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-
-         return result;
-      }
-      default:
-         break;
-   }
-
-   return SYNTAX_ERROR;
-}
 
 // VSE OK -- HOTOVO
 int compareFunction(tFunc *func1, tFunc *func2)
@@ -747,7 +751,6 @@ int createFunc(tFunc **func, char *id, tType typ)
    (*func)->retType = typ;
    (*func)->paramCnt = 0;
    (*func)->param = NULL;
-   (*func)->isDeclared = true;
 
    return SUCCESS;
 }
@@ -756,7 +759,8 @@ int createFunc(tFunc **func, char *id, tType typ)
 int tsInsertVar(table *TS, tVar *var)
 {
    int result = tsInsert(TS, var->id, var);
-   if(result == 1) return INTERNAL_ERROR;
+   if(result == 1) { debug("malloc err\n"); return INTERNAL_ERROR; } 
+   if(result == 2) { debug("Redeklarace promenne %s.\n", var->id); return SYNTAX_ERROR; }
    debug("Promenna %s byla pridana do TS\n", var->id);
 
    tList *data = tsRead(TS, var->id);
@@ -787,106 +791,27 @@ tStack *createStack(tStack *stack, table *TS)
    return new;
 }
 
-// VSE OK - HOTOVO
-int prvkyTridy(table *TS, tStack *stack)
-{
-   int result;
 
-   switch (token.type)
-   {
-      case STATIC:
-      {
-         tType typ;
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = type(&typ))) { return result; }
-         if (token.type != IDENTIFIER) { debug("neni ID -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
-         char *id = token.id;
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = zavStrRov(TS, typ, id, stack))) { return result; }
-
-         if ((result = prvkyTridy(TS, stack))) { return result; }
-         return result;
-      }
-      default:
-         return SUCCESS;
-   }
-}
  
-// VSE OK - HOTOVO
-int prog()
-{
-   int result;
-
-   switch (token.type)
-   {
-      // EOF
-      case END_OF_FILE: 
-         return SUCCESS;
-
-
-      // class ID { }
-      case CLASS:
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != IDENTIFIER) { debug("%s\n", "ERROR: <class ID>"); return SYNTAX_ERROR; }
-
-         // pridani tridy do tabulky
-         tClass *class;
-         if ((result = tsInsertClass(&class))) { return result; }
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != LEFT_CURLY_BRACKET) { debug("chyby { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         
-         tStack *stack;
-         tsInit(class->symbolTable);
-         if (NULL == (stack = createStack(NULL, class->symbolTable))) { return INTERNAL_ERROR; }
-         
-         if ((result = prvkyTridy(class->symbolTable, stack))) { return result; }
-
-         if (token.type != RIGHT_CURLY_BRACKET) { debug("chyby } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = prog())) { return result; }
-         return SUCCESS;
-      
-      default:
-         break;
-   }
-
-   return SYNTAX_ERROR;
-}
-
 // VSE OK -- HOTOVO
 int tsInsertClass(tClass **class)
 {
    int result;
    tList *data = tsRead(globalTS, token.id);
    
-   // pokud jeste neni trida v tabulce symbolu z predchoziho volani, tak ji tam pridam
    if (NULL == data)
    {
       // inicializuji data
       if (NULL == (*class = calloc(1, sizeof(tClass)))) { return INTERNAL_ERROR; }
       (*class)->name = token.id;
-      (*class)->isDeclared = true;
 
       if ((result = tsInsert(globalTS, (*class)->name, *class)) == 1) { return INTERNAL_ERROR; }
       debugClass("Class %s pridana do TS\n", (*class)->name);
    }
-   // pokud jiz trida byla volana, nebo inicializovana
-   else
-   {
-      (*class) = data->dataPtr;
-      // redeklarace tridy
-      if((*class)->isDeclared) { debug("Trida %s jiz byla deklarovana\n", (*class)->name); return SYNTAX_ERROR; }
-
-      // trida se drive volala, ted je jeji definice
-      else
-      {
-         (*class)->isDeclared = true;
-      }
+   else 
+   { 
+      debug("Trida %s jiz byla deklarovana\n", (*class)->name); 
+      return SYNTAX_ERROR;  // mozna jina chyba
    }
 
    return SUCCESS;
@@ -928,4 +853,68 @@ int controlMainRun()
       else if(run->paramCnt) { debug("ERROR: static void run(): nesouhlasi parametry\n"); return SYNTAX_ERROR; }
    }
    return SUCCESS;
+}
+
+
+int GlobalWalkthrought()
+{
+   int result;
+
+   tClass *class;
+   unsigned lCurlyBracket = 0; 
+   unsigned rCurlyBracket = 0; 
+   while (token.type != END_OF_FILE)
+   {
+      if (token.type == LEFT_CURLY_BRACKET)
+         lCurlyBracket++;
+      if (token.type == RIGHT_CURLY_BRACKET)
+         rCurlyBracket++;
+      if (token.type == CLASS)
+      {
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if (token.type != IDENTIFIER) { return SYNTAX_ERROR; }
+         if ((result = tsInsertClass(&class))) { return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         continue;
+      }
+
+      if (token.type == STATIC && (lCurlyBracket-rCurlyBracket == 1))
+      {
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+
+         if (token.type == INT || token.type == DOUBLE || token.type == STRING || token.type == VOID)
+         {
+            tType typ = token.type;
+            if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+            if (token.type != IDENTIFIER) { return SYNTAX_ERROR; }
+            char *id = token.id;
+            if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+            if (token.type == LEFT_BRACKET)
+            {
+               tFunc *func;
+               if ((result = createFunc(&func, id, typ))) { return result; }
+               if ((result = tsInsertFunction(class->symbolTable, func))) { return result; }
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               if ((result = parametr(func))) { return result; }
+               continue;
+            }
+            if (token.type == ASSIGNMENT || token.type == SEMICOLON) 
+            {
+               if (typ == TYPE_VOID) { return SEM_ERROR; }
+               tVar *var;
+               if (createVar(&var, id, typ, false)) { return INTERNAL_ERROR; }
+               if ((result = tsInsertVar(class->symbolTable, var))) { return result; }
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               continue;
+            }
+
+         }
+      }
+      if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+
+   }
+
+   if (lCurlyBracket != rCurlyBracket) { return SYNTAX_ERROR; }
+   return SUCCESS;
+
 }
