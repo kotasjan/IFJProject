@@ -2,6 +2,6 @@ class Main
 	static int a;
 
 	static void run(){
-		void b = 5;
+		int b = 5;
 	}
 }

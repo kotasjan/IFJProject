@@ -1,9 +1,7 @@
-class Main 
-	static String a;
+class Main {
+	static int a = 5;
 
-	static void run(){
-		if((a = 5) > 1 ){
-			
-		}
+	static void Run() {
+		ifj16.print("ahoj").print("ahoj");
 	}
 }
