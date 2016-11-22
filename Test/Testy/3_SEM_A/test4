@@ -1,7 +1,7 @@
 class Main {
 	static int a = 5;
 
-	static void notRun(){
+	static void run(int a, int b){
 		ifj16.print("ahoj");
 	}
 }

@@ -1,0 +1,11 @@
+class Main {
+
+	static void run(){
+		String a = fce();
+	}
+
+	static String fce(){
+		int b = 5;
+		return b;
+	}
+}

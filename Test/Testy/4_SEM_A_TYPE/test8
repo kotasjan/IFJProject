@@ -1,0 +1,10 @@
+class Main {
+
+	static void run(){
+		double a = fce();
+	}
+
+	static String fce(){
+		return "asd";
+	}
+}

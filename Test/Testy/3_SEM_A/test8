@@ -1,7 +1,7 @@
 class Main {
-	static int b = 5;
+	static int a = 5;
 
 	static void run(){
-		Main.b = ;
+		Main.a = b + 2;
 	}
 }
