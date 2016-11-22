@@ -1,0 +1,9 @@
+class Main 
+	static int a;
+
+	static void run(){
+		{
+		a = a*(a+3)+();
+		}
+	}
+}

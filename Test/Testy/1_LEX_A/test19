@@ -1,7 +1,6 @@
 class Main {
 	static int a = 6;
 	static void run(){
-		Main.;
 		String za = "ahoj\";
 	}
 }

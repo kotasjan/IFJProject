@@ -1,0 +1,17 @@
+class Main {
+	static int a = 2;
+
+	static void run(){
+		if(Main.a > 5 - Main.a ){
+			
+		}else{
+			if(Main.a >= 3){
+			
+			}else{
+			
+			}
+		}else{
+
+		}
+	}
+}
