@@ -4,7 +4,7 @@ class Main {
 		String a = fce(5);
 	}
 
-	static String fce(String b){
+	static String fce(int c, int d){
 		int b = 5;
 		return b;
 	}
