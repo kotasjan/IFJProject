@@ -1,0 +1,11 @@
+class Main {
+	static int a = 5;
+
+	static void run(){
+		if(5<7){
+			ifj16.print("toto se provede");
+		}else{
+			ifj16.print("toto se neprovede");
+		}
+	}
+}

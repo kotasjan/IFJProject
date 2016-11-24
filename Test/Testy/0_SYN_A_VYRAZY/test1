@@ -1,0 +1,19 @@
+class Main {
+	static int a = 5;
+
+	static void run(){
+		if(Main.a + 5 >= 10){
+			if(Main.a > 4){
+				if(Main.a < 5){
+					
+				}else{
+					ifj16.print("Toto se provede");
+				}
+			}else{
+
+			}
+		}else{
+
+		}
+	}
+}

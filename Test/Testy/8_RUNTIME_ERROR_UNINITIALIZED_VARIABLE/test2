@@ -1,4 +1,4 @@
-// chybi return fce()
+// chybi return v IF
 class Main {
 	static int b = 5;
 
@@ -7,7 +7,11 @@ class Main {
 	}
 
 	static int fce(){
+		int a = 5;
+		if(a < 10){
 
-
+		}else{
+			return 5;
+		}
 	}
 }

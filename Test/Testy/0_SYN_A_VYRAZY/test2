@@ -1,0 +1,24 @@
+class Main {
+	static int a = 5;
+
+	static void run(){
+	Main.a = 10;
+		if(Pomocna.ahoj + 5 >= vratInt(Main.a)){
+			ifj16.print("Toto se provede");
+		}else{
+			ifj16.print("Toto se neprovede");
+		}
+	}
+}
+
+class Pomocna(){
+	static int ahoj = 5;
+
+	static int vratInt(int b){
+		if(Main.a > 5){
+			return 10;
+		}else{
+			return b;
+		}
+	}
+}

@@ -1,0 +1,11 @@
+class Main {
+	static String str = "Ahoj svete";
+
+	static void run(){
+		if( "eestv" == ifj16.sort("svete")){
+			ifj16.print("toto se nprovede");
+		}else{
+			ifj16.print("toto se neprovede");
+		}
+	}
+}

@@ -1,0 +1,12 @@
+class Main
+{
+	static void run()
+	{
+		int a = priradHodnotu(5 + 6);
+		ifj16.print("Toto je vysledek: " + a);
+	}
+
+	static int priradHodnotu(int b){
+		return b;
+	}
+}
