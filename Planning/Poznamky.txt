@@ -14,3 +14,14 @@
 - Vytvořit testovací soubor se všemi možnými stavy na test LA
 ------------------------------------------------------------------------------------
 ************************************************************************************
+
+************************************************************************************
+-------------------------------------24.11.2016-------------------------------------
+ial.c:
+- funkce compare() pri nacteni prazdneho retezce obsahujici pouze '\0' a druheho
+  libovolneho retezce vyhodnoti oba retezce jako stejno (vrati 0)
+- funkce readDouble() - otestovat, jestli je nactene cislo ve spravnem formatu
+  (popripade zkontrolovat vystup strtod() a poslat cislo chyby)
+- ve funkci printDouble() overit vypis cisla a pocet desetinnych mist u vypisu s %g
+------------------------------------------------------------------------------------
+************************************************************************************
