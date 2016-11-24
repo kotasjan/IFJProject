@@ -32,7 +32,6 @@ typedef struct
    char *id;
    tType type;
    bool init;
-   bool isDeclared;
 } tVar;
 
 
@@ -68,7 +67,8 @@ typedef struct
    unsigned paramCnt;
    tType retType;
    tFuncParam *param;
-   tStack *funcStack;
+   tStack *stack;
+   table funcTable;
    bool isDeclared;
 } tFunc;
 

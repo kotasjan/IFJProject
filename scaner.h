@@ -105,6 +105,12 @@ typedef struct token
   unsigned length;      // Pocet znaku + koncova 0
   unsigned allocSize;   // Pocet alokovanych bajtu
   state type;
+  union value
+  {
+  	int intValue;
+  	double doubleValue;
+  	char *stringValue;
+  }
 } tToken;
 
 //int getToken(tToken *data); // Funkce lexikalniho analyzatoru. Vrati napriklad "IDENTIFIKATOR" nebo "END_OF_FILE".

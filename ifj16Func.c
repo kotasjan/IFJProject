@@ -112,7 +112,7 @@ int addIFJ16(table *TS)
 
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "sort";
-   func->retType = TYPE_INT;
+   func->retType = TYPE_STRING;
    func->isDeclared = true;
    if (addFunctionParam(func, TYPE_STRING, "s")) { return INTERNAL_ERROR; }
    if (addFunction(IFJ16->symbolTable, func)) { return INTERNAL_ERROR; }

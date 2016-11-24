@@ -461,7 +461,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				else
 				{
 					ungetc(c, file);
-					data->type = INT;
+					data->type = LIT_INT;
 					return SUCCESS;				
 				}
 			break;
@@ -490,7 +490,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				else
 				{
 					ungetc(c, file);
-					data->type = DOUBLE;
+					data->type = LIT_DOUBLE;
 					return SUCCESS;				
 				}
 			break;
@@ -518,7 +518,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				else
 				{
 					ungetc(c, file);
-					data->type = DOUBLE;
+					data->type = LIT_DOUBLE;
 					return SUCCESS;				
 				}
 			break;
@@ -546,7 +546,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				else
 				{
 					ungetc(c, file);
-					data->type = DOUBLE;
+					data->type = LIT_DOUBLE;
 					return SUCCESS;				
 				}
 			break;
@@ -574,7 +574,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				else
 				{
 					ungetc(c, file);
-					data->type = DOUBLE;
+					data->type = LIT_DOUBLE;
 					return SUCCESS;				
 				}
 			break;
@@ -602,7 +602,7 @@ errCode getToken(tToken *data){				// je treba FILE * file parametr nebo globaln
 				else
 				{
 					ungetc(c, file);
-					data->type = DOUBLE;
+					data->type = LIT_DOUBLE;
 					return SUCCESS;			
 				}
 			break;

@@ -8,7 +8,6 @@
 #include "tokenFifo.h"
 #include <string.h>
 
-
 tToken token;
 table *globalTS = NULL;
 
@@ -26,7 +25,7 @@ int parse()
 
    if (controlMainRun()) { return SYNTAX_ERROR; }
 
-   //printTS(globalTS);
+   printTS(globalTS);
 
    setFileToBegin(); // nastavi soubor na zacatek, 2. pruchod
 
@@ -39,7 +38,23 @@ int parse()
    return SUCCESS;
 }
 
+tClass *getClassTS()
+{
+   int result;
+   tList *data = tsRead(globalTS, token.id);
+   tClass *class = data->dataPtr;
+   return class;
+}
 
+tFunc *getFunc(table *TS, char *id)
+{
+   int result;
+   tList *data = tsRead(TS, id);
+   if (!data) return NULL;
+   if (!data->func) return NULL;
+   tFunc *func = data->dataPtr;
+   return func;
+}
 
 // VSE OK - HOTOVO
 int prog()
@@ -51,19 +66,13 @@ int prog()
       // EOF
       case END_OF_FILE: { return SUCCESS; }
 
-      // class ID { }
       case CLASS:
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // ID
          if (token.type != IDENTIFIER) { debug("%s\n", "ERROR: <class ID>"); return SYNTAX_ERROR; }
-
-         // pridani tridy do tabulky
-         tClass *class = getTS();
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != LEFT_CURLY_BRACKET) { debug("chyby { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         tsInit(class->symbolTable);
+         tClass *class = getClassTS();
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // {
+         if (token.type != LEFT_CURLY_BRACKET) { debug("chyby { -- %s\n", printTok(&token)); return SYNTAX_ERROR; } 
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // prvky tridy, }
          if ((result = prvkyTridy(class->symbolTable))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("chyby } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
@@ -86,74 +95,112 @@ int prvkyTridy(table *TS)
    {
       case STATIC:
       {
-         tType typ;
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = type(&typ))) { return result; }
-         if (token.type != IDENTIFIER) { debug("neni ID -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
-         char *id = token.id;
-
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = zavStrRov(TS, typ, id))) { return result; }
-
+         if ((result = zavStrRov(TS))) { return result; }
          if ((result = prvkyTridy(TS))) { return result; }
          return result;
       }
-      default:
+      case RIGHT_CURLY_BRACKET:
          return SUCCESS;
+      default:
+         break;
    }
+   return SYNTAX_ERROR;
 }
 
 
-int zavStrRov(table *TS, tType typ, char *id)
+char *parseFullId(char **class, char *name)
+{
+   char *id = strtok(name, ".");
+   bool inClass = true;
+   while (id)
+   {
+      if(inClass) { *class = id; inClass = false; }
+      else return id;
+
+      id = strtok(NULL, ".");
+   }
+
+   return NULL;
+}
+
+int zavStrRov(table *TS)
 {
    int result;
 
    switch (token.type)
    {
-      // static int a;
-      case SEMICOLON:   
+      case INT:
+      case DOUBLE:
+      case STRING:
+      case VOID:
       {
-         // jedna se o promenou, nemuze byt void
-         if (typ == TYPE_VOID) { debug("Promenna typu void\n"); return SEM_ERROR; } 
-         if (controlDecTable(TS, id)) { return SEM_ERROR; } // redeklarace
-         tVar *var; // inicializace dat
-         if (createVar(&var, id, typ, false)) { return INTERNAL_ERROR; }
-         if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
-         debug("Promenna %s byla pridana do TS\n", id);
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         return result;
-      }
-      // static int a(
-      case LEFT_BRACKET:
-      {
-         if (controlDecTable(TS, id)) { return SEM_ERROR; } // redeklarace
-         tFunc *func;
-         if (createFunc(&func, id, typ)) { return INTERNAL_ERROR; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // (
-         if ((result = parametr(func))) { return result; }
-         if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }   // )
-         if (tsInsertFunction(TS, func)) { return INTERNAL_ERROR; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // {
-         if (token.type != LEFT_CURLY_BRACKET) { return SYNTAX_ERROR; } 
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // telo nebo }
-         if ((result = veFunkci())) { return result; }
-         if (token.type != RIGHT_CURLY_BRACKET) { return SYNTAX_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // ID
+         if (token.type != IDENTIFIER) { return SYNTAX_ERROR; }
+         char *id = token.id;
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         return result;         
-      }
-      case ASSIGNMENT:
-      {
-         // jedna se o promenou, nemuze byt void
-         if (typ == TYPE_VOID) { debug("Promenna typu void\n"); return SEM_ERROR; }
-         if (controlDecTable(TS, id)) { return SEM_ERROR; } // redeklarace
-         tVar *var; 
-         if (createVar(&var, id, typ, true)) { return INTERNAL_ERROR; } // inicializace dat
-         if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; } // pridani do TS
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (expressionSkip()) { return SYNTAX_ERROR; }
-         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         return result;
+
+         switch (token.type)
+         {
+            case SEMICOLON:
+            {
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+               return result;
+            }
+            case LEFT_BRACKET:
+            {
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+               if ((result = parametr(NULL))) { return result; }
+               if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+               tFunc *func = getFunc(TS, id);
+               if (!func) { return SYNTAX_ERROR; }
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               if (token.type != LEFT_CURLY_BRACKET) { return SYNTAX_ERROR; }
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+               if ((result = veFunkci(func))) { return result; }
+               if (token.type != RIGHT_CURLY_BRACKET) { return SYNTAX_ERROR; }
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+               return result;
+            }
+            case ASSIGNMENT:
+            {
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+               tToken tmp;
+               memcpy(&tmp, &token, sizeof(tToken));
+               tStack stack;
+               stack.next = NULL;
+               stack.table = TS;
+               if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
+               {
+                  char *funcName = token.id;
+                  if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                  if (token.type == LEFT_BRACKET)
+                  {
+                     return SEM_OTHER_ERROR;
+                  }
+                  else
+                  {
+                     if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
+                     if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if (checkExpr()) { return SYNTAX_ERROR; }
+                     if ((result = expression(false, stack))) {  return result; } 
+                     if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     
+                  }
+               }
+               else
+               {
+                  if (checkExpr()) { return SYNTAX_ERROR; }
+                  if ((result = expression(false, stack))) { return result; } 
+                  if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                  if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               }
+               return result;
+
+            }
+         }
       }
       default:
          break;
@@ -162,99 +209,181 @@ int zavStrRov(table *TS, tType typ, char *id)
    return SYNTAX_ERROR;
 }
 
-int expressionSkip()
-  {
-   int result;
- 
-    switch (token.type)
-    {
-       default:
-       {
-          int bracket = 1;
-          while(token.type != SEMICOLON)
-          {
-             if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }   
-             if(token.type == END_OF_FILE) { return SYNTAX_ERROR; } 
-          }
-          return result;
-       }
-    }
- 
-    return SYNTAX_ERROR;
-  
-  }
-
-int dalsiParametrVolani()
+tList *lookVarStack(tFunc *func)
 {
-   int result;
-
-   switch (token.type)
-   {
-      case COMMA:
-      {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-
-         switch(token.type)
-         {
-            case IDENTIFIER:
-            case FULL_IDENTIFIER:
-            case CHAIN:
-            case LIT_INT:
-            case LIT_DOUBLE:
-               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-               if ((result = dalsiParametrVolani())) { return result; }
-               return result;
-         }         
-      }
-      default:
-         return SUCCESS;
-   }
+   tList *data = tsRead(func->stack->table, token.id);
+   if (data) { debug("nasel sem parametr '%s' funcke '%s'\n", token.id, func->name);  return data; }
+   data = tsRead(func->stack->next->table, token.id);
+   if (data) { debug("nasel sem parametr '%s' funcke '%s'\n", token.id, func->name);  return data; }
+   debug("Promenna '%s' neni deklarovana\n", token.id);
+   return NULL;
 }
 
-int parametrVolani()
+int checkExpr()
+{
+   switch (token.type)
+   {
+      case IDENTIFIER:
+      case FULL_IDENTIFIER:
+      case LIT_INT:
+      case LIT_DOUBLE:
+      case CHAIN:
+      case LEFT_BRACKET:
+         return SUCCESS;
+      default:
+         break;
+   }
+   return SYNTAX_ERROR;
+}
+
+
+int rovnFun(tFunc *func)
 {
    int result;
 
    switch (token.type)
    {
       case IDENTIFIER:
-      case CHAIN:
-      case LIT_INT:
-      case LIT_DOUBLE:
       case FULL_IDENTIFIER:
       {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = dalsiParametrVolani())) { return result; } 
-         return result;
-      }
-      default:
-         return SUCCESS;
-   }
-}
+         tList *data;
+         char *id = token.id;
+         tClass *class;
+         if (token.type == IDENTIFIER)
+         {
+            data = lookVarStack(func);
+            // data = tsCheck(func->stack->table);
+            if (!data) { debug("Nedeklarovana funkce/promenna '%s'\n", token.id); return SYNTAX_ERROR; }
+            if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         }
+         else
+         {
+            char *className;
+            id = parseFullId(&className, token.id);
+            if (!id) { return SYNTAX_ERROR; }
+            data = tsRead(globalTS, className);
+            if (!data) { debug("Nedeklarovana funkce/promenna\n"); return SYNTAX_ERROR; }
+            class = data->dataPtr;
+            data = tsRead(class->symbolTable, id);
+            if (!data) { debug("Nedeklarovana funkce/promenna\n"); return SYNTAX_ERROR; }
+            if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
 
-int rovnFun()
-{
-   int result;
+         }
 
-   switch (token.type)
-   {
-      case LEFT_BRACKET:
-      {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         switch (token.type)
+         {
+            case ASSIGNMENT:
+            {
+               if (data->func) { debug("Promenna je funkce\n"); return SYNTAX_ERROR; }
+               tVar *var = data->dataPtr;
 
-         if ((result = parametrVolani())) { return result; }
-         if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((token.type != SEMICOLON)) { return result; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         return result;
-      }
-      case ASSIGNMENT:
-      {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = expressionSkip())) { return result; }
-         if ((token.type != SEMICOLON)) { return result; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+               tToken tmp;
+               memcpy(&tmp, &token, sizeof(tToken));
+               if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
+               {
+                  char *funcName = token.id;
+                  if (token.type == IDENTIFIER) //  a = c();
+                  {
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if (token.type == LEFT_BRACKET)
+                     {
+                        if (tsCheckFunc(func->stack->next->table, funcName)) {  return SYNTAX_ERROR; }
+                        tFunc *callFunc;
+                        if (createFunc(&callFunc, funcName, var->type)) { return INTERNAL_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if ((result = parametrVolani(func, callFunc))) { return result; }
+                        if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+                        tList *data = tsRead(func->stack->next->table, funcName);
+                        if (!data) { return SYNTAX_ERROR; }
+                        tFunc *funcCmp = data->dataPtr;
+                        if (compareFunction(funcCmp, callFunc)) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        return result;
+                     }
+                     else 
+                     {
+                        if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
+                        if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if (checkExpr()) { return SYNTAX_ERROR; }
+                        if ((result = expression(false, func->stack))) { return result; } 
+                        if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        return result;
+                     }
+                  }
+                  else //  a = Main.c();
+                  {
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if (token.type == LEFT_BRACKET)
+                     {
+                        char *className;
+                        char *functionName;
+
+                        functionName = parseFullId(&className, funcName);
+                        if (!functionName) { return SYNTAX_ERROR; }
+                        tList *data = tsRead(globalTS, className);
+                        if (!data) { debug("Nedeklarovana funkce\n"); return SYNTAX_ERROR; }
+                        tClass *class = data->dataPtr;
+                        data = tsRead(class->symbolTable, functionName);
+                        if (!data) { debug("Nedeklarovana funkce\n"); return SYNTAX_ERROR; }
+                        if (!data->func) { debug("funkce neni funkce\n"); return SYNTAX_ERROR;}
+                        tFunc *callFunc;
+                        if (createFunc(&callFunc, funcName, var->type)) { return INTERNAL_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if ((result = parametrVolani(func, callFunc))) { return result; }
+                        if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+                        tFunc *funcCmp = data->dataPtr;
+                        if (compareFunction(funcCmp, callFunc)) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        return result;
+                     }
+                     else
+                     {
+                        if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
+                        if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if (checkExpr()) { return SYNTAX_ERROR; }
+                        if ((result = expression(false, func->stack))) { return result; } 
+                        if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        return result;
+                     }
+                  }
+               }
+               else
+               {
+                  if (checkExpr()) { return SYNTAX_ERROR; }
+                  if ((result = expression(false, func->stack))) { return result; } 
+                  if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                  if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                  return result;
+               }
+               
+            }
+            case LEFT_BRACKET:
+            {
+               if (tsCheckFunc(class->symbolTable, id)) { return SYNTAX_ERROR; }
+               tFunc *callFunc;
+               if (createFunc(&callFunc, id, TYPE_VOID)) { return INTERNAL_ERROR; }
+               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               if ((result = parametrVolani(func, callFunc))) { return result; }
+               if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+               tList *data = tsRead(class->symbolTable, id);
+               if (!data) { return SYNTAX_ERROR; }
+               tFunc *funcCmp = data->dataPtr;
+               if (compareFunction(funcCmp, callFunc)) { return SYNTAX_ERROR; }
+               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               return result;
+            }
+         }
          return result;
       }
       default:
@@ -273,24 +402,132 @@ int controlDecTable(table *TS, char *key)
 }
 
 
-int strRovn()
+int strRovn(tFunc *func)
 {
    int result;
 
    switch (token.type)
    {
-      case SEMICOLON:
+      case INT:
+      case DOUBLE:
+      case STRING:
       {
+         tVar *var;
+         if (NULL == (var = calloc(1, sizeof(tVar)))) { return INTERNAL_ERROR; }
+         var->type = token.type;
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         return result;
-      }
-      case ASSIGNMENT:
+         if (token.type != IDENTIFIER) { debug("Promenna nema identifkator\n"); return SYNTAX_ERROR; }
+         var->id = token.id;
+         if (tsCheckVarFunc(func->stack->table, var->id)) { return SYNTAX_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = tsInsertVar(func->stack->table, var))) { return result; }
+         debug("pridal jsem promennou '%s' do funkce '%s'\n", var->id, func->name);
+         
+         switch (token.type)
+         {
+            case SEMICOLON:
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               return result;
+
+            case ASSIGNMENT:
+            {
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+               tToken tmp;
+               memcpy(&tmp, &token, sizeof(tToken));
+               if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
+               {
+                  char *funcName = token.id;
+                  if (token.type == IDENTIFIER) // int a = c();
+                  {
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if (token.type == LEFT_BRACKET)
+                     {
+                        if (tsCheckFunc(func->stack->next->table, funcName)) {  return SYNTAX_ERROR; }
+                        tFunc *callFunc;
+                        if (createFunc(&callFunc, funcName, var->type)) { return INTERNAL_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if ((result = parametrVolani(func, callFunc))) { return result; }
+                        if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+                        tList *data = tsRead(func->stack->next->table, funcName);
+                        if (!data) { return SYNTAX_ERROR; }
+                        tFunc *funcCmp = data->dataPtr;
+                        if (compareFunction(funcCmp, callFunc)) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        return result;
+                     }
+                     else 
+                     {
+                        if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
+                        if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if (checkExpr()) { return SYNTAX_ERROR; }
+                        if ((result = expression(false, func->stack))) { return result; } 
+                        if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        return result;
+                     }
+                  }
+                  else // int a = Main.c();
+                  {
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if (token.type == LEFT_BRACKET)
+                     {
+                        char *className;
+                        char *functionName;
+
+                        functionName = parseFullId(&className, funcName);
+                        if (!functionName) { return SYNTAX_ERROR; }
+                        tList *data = tsRead(globalTS, className);
+                        if (!data) { debug("Nedeklarovana funkce\n"); return SYNTAX_ERROR; }
+                        tClass *class = data->dataPtr;
+                        data = tsRead(class->symbolTable, functionName);
+                        if (!data) { debug("Nedeklarovana funkce\n"); return SYNTAX_ERROR; }
+                        if (!data->func) { debug("funkce neni funkce\n"); return SYNTAX_ERROR;}
+                        tFunc *callFunc;
+                        if (createFunc(&callFunc, funcName, var->type)) { return INTERNAL_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if ((result = parametrVolani(func, callFunc))) { return result; }
+                        if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+                        tFunc *funcCmp = data->dataPtr;
+                        if (compareFunction(funcCmp, callFunc)) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        return result;
+                     }
+                     else
+                     {
+                        if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
+                        if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if (checkExpr()) { return SYNTAX_ERROR; }
+                        if ((result = expression(false, func->stack))) { return result; } 
+                        if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        return result;
+                     }
+                  }
+               }
+               else
+               {
+                  if (checkExpr()) { return SYNTAX_ERROR; }
+                  if ((result = expression(false, func->stack))) { return result; } 
+                  if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                  if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                  return result;
+               }
+            }
+            default:
+               return SYNTAX_ERROR;
+            }
+            
+         }
+
+      case VOID:
       {
-         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-         if (expressionSkip()) { return SYNTAX_ERROR; }
-         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         return result;
+         return SEM_ERROR;
       }
       default:
          break;
@@ -323,46 +560,47 @@ table *tsCheckClass(char *className)
    return class->symbolTable;
 } 
 
-char *parseFullId(char **class)
-{
-   char *id = strtok(token.id, ".");
-   bool inClass = true;
-   while (id)
-   {
-      if(inClass) { *class = id; inClass = false; }
-      else return id;
 
-      id = strtok(NULL, ".");
-   }
 
-   return NULL;
-}
-
-int tsCheckVarFunc(table *TS, char *id, bool isFunc)
+int tsCheckVarFunc(table *TS, char *id)
 {
    tList *data = tsRead(TS, id);
    if (data)
    {
-      if (data->func) { if (!isFunc) { debug("Promenna jiz byla deklarova jako funkce\n"); return SYNTAX_ERROR; } }
-      else if (!data->func) { if (isFunc) { debug("Funkce jiz byla deklarova jako promenna\n"); return SYNTAX_ERROR; } }
+      debug("redeklarace promenne '%s'\n", id);
+     return SYNTAX_ERROR;
    }
    else
    {
-      if(isFunc)
-      {
-         tFunc *func = calloc(1, sizeof(tFunc));
-         if(!func) { return INTERNAL_ERROR; }
-         func->name = id;
-         if (tsInsertFunction(TS, func)) { return INTERNAL_ERROR; }
-      }
-      else
-      {
-         tVar *var = calloc(1, sizeof(tVar));
-         if(!var) { return INTERNAL_ERROR; }
-         var->id = id;
-         if (tsInsertVar(TS, var)) { return INTERNAL_ERROR; }
+      return SUCCESS;
+   }
+}
 
-      }
+tList *tsCheck(table *TS)
+{
+   tList *data = tsRead(TS, token.id);
+   if (data)
+   {
+      return data;
+   }
+   else
+   {
+      return NULL;
+   }
+
+}
+
+int tsCheckFunc(table *TS, char *id)
+{
+   tList *data = tsRead(TS, id);
+   if (data)
+   {
+      if(!data->func) return SYNTAX_ERROR;
+      return SUCCESS;
+   }
+   else
+   {
+      return SYNTAX_ERROR;
    }
 }
 
@@ -398,7 +636,7 @@ int boolExp()
 
 }
 
-int blok()
+int blok(tFunc *func)
 {
    int result;
 
@@ -407,9 +645,8 @@ int blok()
       case IDENTIFIER:
       case FULL_IDENTIFIER:
       {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = rovnFun())) { return result; }
-         if ((result = blok())) { return result; } 
+         if ((result = rovnFun(func))) { return result; } 
+         if ((result = blok(func))) { return result; } 
          return result;
       }
       case IF:
@@ -417,22 +654,23 @@ int blok()
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("IF nema ( -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = boolExp())) { return result; } 
+         if (checkExpr()) { return SYNTAX_ERROR; }
+         if (expression(true, func->stack)) { return SYNTAX_ERROR; }   
          if (token.type != RIGHT_BRACKET) { debug("IF nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = blok())) { return result; }
+         if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != ELSE) { debug("IF nema ELSE ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = blok())) { return result; }
+         if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = blok())) { return result; } 
+         if ((result = blok(func))) { return result; } 
          return result;
       }
       case DO:
@@ -440,19 +678,20 @@ int blok()
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_CURLY_BRACKET) { debug("DO nema { -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = blok())) { return result; }
+         if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("DO nema } -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != WHILE) { debug("DO nema WHILE ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("DO nema ( -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = boolExp())) { return result; } 
+         if (checkExpr()) { return SYNTAX_ERROR; }
+         if (expression(true, func->stack)) { return SYNTAX_ERROR; }  
          if (token.type != RIGHT_BRACKET) { debug("DO nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != SEMICOLON) { debug("DO ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = blok())) { return result; } 
+         if ((result = blok(func))) { return result; } 
          return result;  
       }
       case WHILE:
@@ -460,26 +699,24 @@ int blok()
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("WHILE nema ( -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = boolExp())) { return result; } 
+         if (checkExpr()) { return SYNTAX_ERROR; }
+         if (expression(true, func->stack)) { return SYNTAX_ERROR; }   
          if (token.type != RIGHT_BRACKET) { debug("WHILE nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != LEFT_CURLY_BRACKET) { debug("WHILE nema { -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = blok())) { return result; }
+         if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("WHILE nema } -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
-         if ((result = blok())) { return result; } 
+         if ((result = blok(func))) { return result; } 
          return result; 
       }
       case RETURN:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != SEMICOLON) {  
-            if (expressionSkip()) { return SYNTAX_ERROR; } 
-            if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
-         }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
-         if ((result = blok())) { return result; } 
+         if (checkExpr()) { return SYNTAX_ERROR; }
+         if (expression(true, func->stack)) { return SYNTAX_ERROR; }       
+         if ((result = blok(func))) { return result; } 
          return result; 
       }
       default:
@@ -488,73 +725,70 @@ int blok()
    }
 }
 
-int veFunkci()
+int veFunkci(tFunc *func)
 {
    int result;
-
    switch (token.type)
    {
       case INT:
       case DOUBLE:
       case STRING:
+      case VOID:
       {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != IDENTIFIER) { debug("Nema ID -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = strRovn())) { return result; }
-         if ((result = veFunkci())) { return result; }
+         if ((result = strRovn(func))) { return result; }
+         if ((result = veFunkci(func))) { return result; }
          return result;
       }
-      case FULL_IDENTIFIER:
       case IDENTIFIER:
+      case FULL_IDENTIFIER:
       {
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = rovnFun())) { return result; } 
-         if ((result = veFunkci())) { return result; } 
+         if ((result = rovnFun(func))) { return result; } 
+         if ((result = veFunkci(func))) { return result; }
          return result;
-      }
+      }    
       case IF:
       {
-
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("IF nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (boolExp()) { return SYNTAX_ERROR; } 
+         if (checkExpr()) { return SYNTAX_ERROR; }
+         if (expression(true, func->stack)) {  return SYNTAX_ERROR; }
          if (token.type != RIGHT_BRACKET) { debug("IF nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = blok())) { return result; }
+         if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != ELSE) { debug("IF nema ELSE ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = blok())) { return result; }
+         if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = veFunkci())) { return result; } 
+         if ((result = veFunkci(func))) { return result; } 
          return result;
       }
       case DO:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_CURLY_BRACKET) { debug("DO nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = blok())) { return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if (checkExpr()) { return SYNTAX_ERROR; }
+         if (expression(true, func->stack)) { return SYNTAX_ERROR; } 
          if (token.type != RIGHT_CURLY_BRACKET) { debug("DO nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != WHILE) { debug("DO nema WHILE ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("DO nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (boolExp()) { return SYNTAX_ERROR; } 
+         if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_BRACKET) { debug("DO nema ) -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != SEMICOLON) { debug("DO ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = veFunkci())) { return result; } 
+         if ((result = veFunkci(func))) { return result; } 
          return result;  
       }
       case WHILE:
@@ -562,26 +796,27 @@ int veFunkci()
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("WHILE nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (boolExp()) { return SYNTAX_ERROR; }  
+         if (checkExpr()) { return SYNTAX_ERROR; }
+         if (expression(true, func->stack)) { return SYNTAX_ERROR; }   
          if (token.type != RIGHT_BRACKET) { debug("WHILE nema ) -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != LEFT_CURLY_BRACKET) { debug("WHILE nema { -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if ((result = blok())) { return result; }
+         if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("WHILE nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
-         if ((result = veFunkci())) { return result; } 
+         if ((result = veFunkci(func))) { return result; } 
          return result; 
       }
       case RETURN:
       {
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != SEMICOLON) {  
-            if (expressionSkip()) { return SYNTAX_ERROR; } 
-            if (token.type != SEMICOLON) { debug("RETURN ; } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
-         }
-         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
-         if ((result = veFunkci())) { return result; } 
+         if (token.type == SEMICOLON)
+            if (func->retType != TYPE_VOID) { debug("Prazdny return v ne Void funkci\n"); return SYNTAX_ERROR; } 
+            else { if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } return result; }
+         if (checkExpr()) { return SYNTAX_ERROR; }
+         if (expression(true, func->stack)) { return SYNTAX_ERROR; }     
+         if ((result = veFunkci(func))) { return result; } 
          return result; 
       }
       default:
@@ -592,7 +827,6 @@ int veFunkci()
 int addParamToStack(tFunc *func, tStack *stack)
 {
    int result;
-
    if (func->paramCnt)
    {
       tFuncParam *param = func->param;
@@ -607,7 +841,7 @@ int addParamToStack(tFunc *func, tStack *stack)
          result = tsInsert(stack->table, var->id, var);
 
          if ((result == 1)) { return INTERNAL_ERROR; }
-         if (result == 2) { debug("Redeklarace promenne '%s'\n", func->name); return SYNTAX_ERROR; }
+         if (result == 2) { debug("Redeklarace promenne '%s'\n", param->id); return SYNTAX_ERROR; }
          debug("Parametr '%s' funkce '%s' pridan do TS funkce\n", var->id, func->name);
 
          param = param->nextParam;
@@ -670,7 +904,8 @@ int dalsiParametr(tFunc *func)
          if (typ == VOID) { debug("parametr typu VOID -- %s\n", printTok(&token)); return SEM_ERROR; }
 
          if (token.type != IDENTIFIER) { debug("nema ID -- %s\n", printTok(&token)); return result; }
-         if (addFuncParam(func, typ)) { return INTERNAL_ERROR; }
+         if (func)
+            if (addFuncParam(func, typ)) { return INTERNAL_ERROR; }
 
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // ID
          if ((result = dalsiParametr(func))) { return result; }
@@ -700,7 +935,8 @@ int parametr(tFunc *func)
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // ID
          if (token.type != IDENTIFIER) { debug("nema ID -- %s\n", printTok(&token)); return result; }
 
-         if (addFuncParam(func, typ)) { return INTERNAL_ERROR; }
+         if (func)
+            if (addFuncParam(func, typ)) { return INTERNAL_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } // ) nebo ,
 
          if ((result = dalsiParametr(func))) { return result; }
@@ -861,6 +1097,7 @@ int GlobalWalkthrought()
    int result;
 
    tClass *class;
+   tStack *stack;
    unsigned lCurlyBracket = 0; 
    unsigned rCurlyBracket = 0; 
    while (token.type != END_OF_FILE)
@@ -874,6 +1111,7 @@ int GlobalWalkthrought()
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != IDENTIFIER) { return SYNTAX_ERROR; }
          if ((result = tsInsertClass(&class))) { return result; }
+         if (NULL == (stack = createStack(NULL, class->symbolTable))) { return INTERNAL_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          continue;
       }
@@ -893,9 +1131,13 @@ int GlobalWalkthrought()
             {
                tFunc *func;
                if ((result = createFunc(&func, id, typ))) { return result; }
+               tsInit(func->funcTable);
+               if (NULL == (func->stack = createStack(stack, func->funcTable))) { return INTERNAL_ERROR; }
+               debug("Vytvoril sem tabulku symbolu pro funkci '%s'\n", func->name);
                if ((result = tsInsertFunction(class->symbolTable, func))) { return result; }
                if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
                if ((result = parametr(func))) { return result; }
+               if ((result = addParamToStack(func, func->stack))) { return result; }
                continue;
             }
             if (token.type == ASSIGNMENT || token.type == SEMICOLON) 
@@ -909,6 +1151,10 @@ int GlobalWalkthrought()
             }
 
          }
+         else 
+         {
+            return SYNTAX_ERROR;
+         }
       }
       if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
 
@@ -917,4 +1163,110 @@ int GlobalWalkthrought()
    if (lCurlyBracket != rCurlyBracket) { return SYNTAX_ERROR; }
    return SUCCESS;
 
+}
+
+
+int parametrVolani(tFunc *func, tFunc *callFunc)
+{
+   int result;
+
+   switch (token.type)
+   {
+      case IDENTIFIER:
+      {
+         tList *data = lookVarStack(func);
+         if (!data) { return SYNTAX_ERROR; }
+         if (data->func) { debug("Promenna je funkce\n"); return SYNTAX_ERROR; }
+         tVar *var = data->dataPtr; 
+         if (addFuncParam(callFunc, var->type)) { return INTERNAL_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = dalsiParametrVolani(func, callFunc))) { return result; } 
+         return result;
+      }
+      case FULL_IDENTIFIER:
+      {
+         char *className;
+         char *functionName;
+         functionName = parseFullId(&className, token.id);
+         if (!functionName) { return SYNTAX_ERROR; }
+         tList *data = tsRead(globalTS, className);
+         if (!data) { debug("Nedeklarovana promena\n"); return SYNTAX_ERROR; }
+         tClass *class = data->dataPtr;
+         data = tsRead(class->symbolTable, functionName);
+         if (!data) { debug("Nedeklarovana promena\n"); return SYNTAX_ERROR; }
+         if (data->func) { debug("Promenna je funkce\n"); return SYNTAX_ERROR;}
+         tVar *var = data->dataPtr; 
+         if (addFuncParam(callFunc, var->type)) { return INTERNAL_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = dalsiParametrVolani(func, callFunc))) { return result; } 
+         return result;
+      }
+      case CHAIN:
+      case LIT_INT:
+      case LIT_DOUBLE:
+      {
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = dalsiParametrVolani(func, callFunc))) { return result; } 
+         return result;
+      }
+      default:
+         return SUCCESS;
+   }
+}
+
+
+int dalsiParametrVolani(tFunc *func, tFunc *callFunc)
+{
+   int result;
+
+   switch (token.type)
+   {
+      case COMMA:
+      {
+
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+
+         switch(token.type)
+         {
+            case IDENTIFIER:
+            {
+
+               tList *data = lookVarStack(func);
+               if (!data) { return SYNTAX_ERROR; }
+               if (data->func) { debug("Promenna je funkce\n"); return SYNTAX_ERROR; }
+               tVar *var = data->dataPtr; 
+               if (addFuncParam(callFunc, var->type)) { return INTERNAL_ERROR; }
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               if ((result = dalsiParametrVolani(func, callFunc))) { return result; }
+               return result;
+            }
+            case FULL_IDENTIFIER:
+            {
+               char *className;
+               char *functionName;
+               functionName = parseFullId(&className, token.id);
+               if (!functionName) { return SYNTAX_ERROR; }
+               tList *data = tsRead(globalTS, className);
+               if (!data) { debug("Nedeklarovana promena\n"); return SYNTAX_ERROR; }
+               tClass *class = data->dataPtr;
+               data = tsRead(class->symbolTable, functionName);
+               if (!data) { debug("Nedeklarovana promena\n"); return SYNTAX_ERROR; }
+               if (data->func) { debug("Promenna je funkce\n"); return SYNTAX_ERROR;}
+               tVar *var = data->dataPtr; 
+               if (addFuncParam(callFunc, var->type)) { return INTERNAL_ERROR; }
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               if ((result = dalsiParametrVolani(func, callFunc))) { return result; }
+               return result;
+            }
+            case CHAIN:
+            case LIT_INT:
+            case LIT_DOUBLE:
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               if ((result = dalsiParametrVolani(func, callFunc))) { return result; }
+               return result;
+         }         
+      }
+      default:
+         return SUCCESS;
+   }
 }

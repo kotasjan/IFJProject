@@ -18,7 +18,7 @@ int stackInit(){
 	}
 	else{
 		tmp->data='$';
-		tmp->next=zasobnik;
+		tmp->next=NULL;
 		zasobnik=tmp;
       return SUCCESS;
 	}
@@ -30,7 +30,7 @@ int push(int znacka, tExpStack *pom)
    if (!tmp) { return INTERNAL_ERROR; }
    if (znacka == 0)
    {
-      printf("AAAAAAAAAAAAAAAAAAAAAAA%c\n",giveTok(&token));
+      //printf("AAAAAAAAAAAAAAAAAAAAAAA%c\n",giveTok(&token));
 		tmp->data=giveTok(&token);
 		tmp->next=zasobnik;
 		zasobnik=tmp;
@@ -45,7 +45,7 @@ int push(int znacka, tExpStack *pom)
       }
       else
       {
-         printf("Ted by se to hodilo \n\n");
+         //printf("Ted by se to hodilo \n\n");
          zasobnik->next=tmp;
       }  
    }
@@ -115,25 +115,26 @@ int pop()
       else return SYNTAX_ERROR;
    }     
       
-   vypis_zasobniku();
+   vypis_zasobniku(zasobnik);
    
    return SUCCESS;
 }
 
-int expression(bool logic, tStack *stack1)
+int expression(bool logic, tStack *stackTop)
 {
    if (logic) podminka=true;
    int result;
    if (token.type == SEMICOLON) { return SYNTAX_ERROR; }
-   stack = stack1;
+   stack = stackTop;
    tList *data;
 
   
-   printf("ZACATEK\n\n\n");
+ //  printf("ZACATEK\n\n\n");
    if ((result = stackInit())) { return result; }
    if ((result = co_delat())) { return result; }
    cisteni();
-   printf("KONEC\n\n\n");
+   debug("Expr: vse ok %d\n" , result);
+  // printf("KONEC\n\n\n");
    return result;     
 }
 
@@ -171,7 +172,7 @@ tExpStack* nejblizsi_terminal()
       }
       vys=vys->next;
    }
-  printf("Neco je spatne!");
+ // printf("Neco je spatne!");
 
 }
 
@@ -182,56 +183,52 @@ int co_delat(){
    int result;
    tExpStack *pom;
    if (NULL == (pom = nejblizsi_terminal())) { return SYNTAX_ERROR; }
-   vypis_zasobniku();
-   printf("POM JE:%c\n",pom->data);
-   printf("TOKEN JE: %c %d \n",giveTok(&token),token.type);
-   vypis_zasobniku();
+
+  // printf("POM JE:%c\n",pom->data);
+  // printf("TOKEN JE: %c %d \n",giveTok(&token),token.type);
+   vypis_zasobniku(zasobnik);
    for(int i=0;((konec==false)&&(i<VELIKOST_TABULKY));i++){
       //printf("Hledam ... %d.Pruchod\n",i);
       if(giveTok(&token)==PrecedencniTabulka[0][i]){
-         printf("Nasel jsem shodu pro token na %d.prvku\n",i);
+        // printf("Nasel jsem shodu pro token na %d.prvku\n",i);
          vysledek2=i;
       }
       if(pom->data==PrecedencniTabulka[i][0]){
          vysledek1=i;
-         printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
+        // printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
       }
       if((vysledek1!=0)&&(vysledek2!=0)){
          konec=true;
       }
+      if(i==(VELIKOST_TABULKY-1)&&(konec==false)) return SYNTAX_ERROR;
    }
-   if((vysledek2==16)&&(vysledek1==17)) return SUCCESS;
+   
+  // printf("%c\n",zasobnik->data );
+   if((vysledek2==16)&&(vysledek1==17)&&('$'==zasobnik->data)) return SYNTAX_ERROR;
    switch(PrecedencniTabulka[vysledek1][vysledek2]){
       case '<': 
          if ((result = push(1,pom))) { return result; }
-         vypis_zasobniku();
+         vypis_zasobniku(zasobnik);
          if ((result = push(0,pom))) { return result; }
             if((result = getToken(&token))) {
                debug("%s\n", "ERROR - v LEX"); 
                return result; 
             }
-            tList *data;
-
-            if(token.type == IDENTIFIER)
-            {
-            	data = tsRead(stack->table, token.id);
             
-         	if (data) printf("ok\n");
-         	else printf("nee\n");
-        		}
-         vypis_zasobniku();
+        		
+         vypis_zasobniku(zasobnik);
          if ((result = co_delat())) { return result; }
 
 
       break;
       case '>': 
-                printf("Skocilo to do >\n");
-                vypis_zasobniku();
+                //printf("Skocilo to do >\n");
+                vypis_zasobniku(zasobnik);
                 if ((result = pop())) { return result; }
                 if ((result = co_delat())) { return result; }
       break;
-      case '=': printf("Skocilo to do =\n");
-                vypis_zasobniku();
+      case '=': //printf("Skocilo to do =\n");
+                vypis_zasobniku(zasobnik);
                 if ((result = pop())) { return result; }
 
                   if((result = getToken(&token))) {
@@ -239,20 +236,14 @@ int co_delat(){
                      return result; 
                   }
 
-		            if(token.type == IDENTIFIER)
-		            {
-		            	data = tsRead(stack->table, token.id);
 		            
-		         	if (data) printf("ok\n");
-		         	else printf("nee\n");
-		        		}
                
-                vypis_zasobniku();
+                vypis_zasobniku(zasobnik);
                 if ((result = co_delat())) { return result; }
       break;
-      case '-': printf("Skocilo to do -\n");
-                vypis_zasobniku();
-                printf("%c\n",giveTok(&token));
+      case '-': //printf("Skocilo to do -\n");
+                vypis_zasobniku(zasobnik);
+                //printf("%c\n",giveTok(&token));
       break;
       default:   return SUCCESS;
    }
@@ -283,16 +274,18 @@ int pocetPrvkuNaZasobniku(){
 
 
 
-void vypis_zasobniku(){
+void vypis_zasobniku(tExpStack *zasobnik){
    tExpStack *aktualni;
    aktualni=zasobnik;
-   if(aktualni!=NULL){
-	  printf("Zasobnik obsahuje polozky: ");
-	  do{
-		 printf("%c ",aktualni->data);
-		 aktualni=aktualni->next;
-	    }while(aktualni!=NULL);
-	printf("\n");
-}
+	 // printf("Zasobnik obsahuje polozky: ");
+	while(aktualni){
+		//printf("%c ",aktualni->data);
+		aktualni=aktualni->next;
+	}
+     
+//printf("\n");
+
+
+
 
 }
