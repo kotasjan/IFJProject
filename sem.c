@@ -10,23 +10,32 @@
 #include <stdlib.h>
 
 tToken token;
+tInstructionList *GlobalList;
 
-tClass *getTS()
+
+
+
+int semStart()
 {
-   int result;
-   tList *data = tsRead(globalTS, token.id);
-   tClass *class = data->dataPtr;
-   return class;
-}
-int semStart(table *TS)
-{
+
+   debug("Zacatek semanticke analyzi\n");
    int result;
    getToken(&token); // ID
-   if ((result = semProg(TS))) { return result; }
+
+   GlobalList = listInit();
+
+   tInstr *inst = generateInstruction(I_PUSH_GLOBAL, NULL, NULL, NULL);
+   if (!inst) debug("GEN. inst err malloc");
+
+   tInstructionItem *item = listInsert(inst);
+   if (!item) debug("LIST item error");
+   debug("Vygeneroval jsem instrukci global.\n");
+
+   if ((result = semProg())) { return result; }
    return SUCCESS;
 }
 
-int semProg(table *TS)
+int semProg()
 {
    int result;
 
@@ -45,7 +54,7 @@ int semProg(table *TS)
          if ((result = semPrvkyTridy(stack))) { return result; }
 
          getToken(&token); // 
-         if ((result = semProg(TS))) { return result; }
+         if ((result = semProg())) { return result; }
 
          return SUCCESS;
       }
@@ -141,12 +150,44 @@ int semParametr()
 
 }
 
+int semRovnFun()
+{
+   int result;
+
+   switch (token.type)
+   {
+      case LEFT_BRACKET:
+      {
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+
+         if ((result = parametrVolani())) { return result; }
+         if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((token.type != SEMICOLON)) { return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         return result;
+      }
+      case ASSIGNMENT:
+      {
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = expressionSkip())) { return result; }
+         if ((token.type != SEMICOLON)) { return result; }
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         return result;
+      }
+      default:
+         break;
+   }
+
+   return SYNTAX_ERROR;
+}
+
 int semExpression(tStack *stack)
 {
 
 }
 
-int semStrRovn()
+int semStrRovn(tType typ, char *id, tStack *stack)
 {
    int result;
 
@@ -154,13 +195,43 @@ int semStrRovn()
    {
       case SEMICOLON:
       {
+         tVar *var;
+         if (createVar(&var, id, typ, false)) { return INTERNAL_ERROR; }
+         if ((result = tsInsertVar(stack->table, var))) { return result; }
          getToken(&token);
          return result;
       }
       case ASSIGNMENT:
       {
-         getToken(&token);
-         if ((result = expression())) { return result; } 
+         tVar *var;
+         if (createVar(&var, id, typ, false)) { return INTERNAL_ERROR; }
+         if ((result = tsInsertVar(stack->table, var))) { return result; }
+         tToken tmp;
+         memcpy(&tmp, &token, sizeof(tToken));
+         if (token.type == IDENTIFIER || token.type == FULL_IDENTIFIER)
+         {
+            getToken(&token);
+            if (token.type != LEFT_BRACKET)
+            {
+               if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
+               if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
+               getToken(&token);
+               if ((result = expression(false))) { return result; } 
+            }
+            else
+            {
+               getToken(&token);
+               if ((result = parametrVolani())) { return result; }
+               getToken(&token);
+            }
+         }
+         else
+         {
+            getToken(&token);
+            if ((result = expression(false))) { return result; } 
+         }
+
+         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
          getToken(&token);
          return result;
       }
@@ -172,6 +243,7 @@ int semStrRovn()
 
 }
 
+
 int semVeFunkci(tStack *stack)
 {
    int result;
@@ -182,11 +254,44 @@ int semVeFunkci(tStack *stack)
       case DOUBLE:
       case STRING:
       {
+         tType typ = token.type;
          getToken(&token);
-         char id = token.id;
+         char *id = token.id;
          getToken(&token);
-         if ((result = semStrRovn())) { return result; }
+         if ((result = semStrRovn(typ, id, stack))) { return result; }
+         if (( result = semVeFunkci(stack))) { return result; }
+         return result;
       }
+      case IDENTIFIER:
+      {
+         tList *data = NULL;
+         tStack *tmp = stack;
+         while (!data)
+         {
+            printf("1\n");
+            printf("%s\n",token.id );
+            data = tsRead(tmp->table, token.id);
+            if (!data) tmp = tmp->next;  
+            if (data)
+            {
+               printf("konec\n");
+               break;
+            }
+            if (!tmp) { debug("nedeklarovana\n"); return SYNTAX_ERROR; }
+            
+         }
+         printf("5454\n");
+         getToken(&token);
+         semRovnFun();
+      }
+      case FULL_IDENTIFIER:
+      {
+         // TODO
+      }
+
+
+      default:
+         return SUCCESS;
    }
 
    return SUCCESS;
@@ -198,11 +303,13 @@ int semZavStrRov(tStack *stack, tType typ, char *id)
 
    switch (token.type)
    {
+      // static int a;
       case SEMICOLON:
       {
          getToken(&token);
          return SUCCESS;
       }
+      // static void run ()
       case LEFT_BRACKET:
       {
          getToken(&token);
@@ -212,25 +319,29 @@ int semZavStrRov(tStack *stack, tType typ, char *id)
          if (!data) { return SYNTAX_ERROR; }
          tFunc *func = data->dataPtr;
 
+         printFunction(func);
+
          table table;
          tsInit(&table);
          tStack *newStack = createStack(stack, &table);
-         if (addParamToStack(func, stack)) { return INTERNAL_ERROR; }
+         if (addParamToStack(func, newStack)) { return INTERNAL_ERROR; }
          getToken(&token);
          getToken(&token);
-         if ((result = semVeFunkci(stack))) { return result; }
-
+         if ((result = semVeFunkci(newStack))) { return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { return SYNTAX_ERROR; }
+         getToken(&token);
+         return result;
 
          // TODO
       }
+      // static int a = 
       case ASSIGNMENT:
       {
+
          if ((result = expression(stack))) { debug("ERROR - v exp'\n"); return result; }
          tVar *var;
          if (NULL == (var = tsInitVar(stack->table, id))) { return SYNTAX_ERROR; }
-
-         tInstruction *inst;
-        // if (NULL == (inst = createInst(I_ASSIGNMENT, hodnotaodsekyho, NULL, var))) { return INTERNAL_ERROR; }
+         debug("Promenna '%s' byla inicializovana\n", var->id);
 
          getToken(&token);
          return SUCCESS;

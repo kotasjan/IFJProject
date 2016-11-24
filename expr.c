@@ -23,6 +23,25 @@ int stackInit(){
       return SUCCESS;
 	}
 }
+void dat_typ(tExpStack **tmp){
+   (*tmp)->typ = token.type;
+
+   switch(token.type){
+      case LIT_INT: 
+         (*tmp)->value.intValue=token.value.intValue; 
+         //debug("Int cislo %d\n", (*tmp)->value.intValue);
+         break;
+      case LIT_DOUBLE:  
+         (*tmp)->value.doubleValue=token.value.doubleValue; 
+        // debug("Double cislo %f\n", (*tmp)->value.doubleValue);
+         break;
+      case CHAIN: 
+         (*tmp)->value.stringValue=token.value.stringValue; 
+         //debug("String %s\n", (*tmp)->value.stringValue);
+         break;
+      }
+   return;
+}
 
 int push(int znacka, tExpStack *pom)
 {
@@ -32,6 +51,7 @@ int push(int znacka, tExpStack *pom)
    {
       //printf("AAAAAAAAAAAAAAAAAAAAAAA%c\n",giveTok(&token));
 		tmp->data=giveTok(&token);
+      dat_typ(&tmp);
 		tmp->next=zasobnik;
 		zasobnik=tmp;
 	}
@@ -58,7 +78,73 @@ int push(int znacka, tExpStack *pom)
    }   
    return SUCCESS;
 }
+void printValue(tExpStack *tmp)
+{
+   static int i = 0;
+      switch (tmp->typ)
+      {
+         case LIT_DOUBLE:
+            debug("%f\n", tmp->value.doubleValue);
+            break;
+         case LIT_INT:
+            debug("%d\n", tmp->value.intValue);
+            break;
+         case CHAIN:
+            debug("%s\n", tmp->value.stringValue);
+            break;
+         case PLUS:
+            debug("+\n");
+         case MULTIPLIER:
+            debug("*\n");
+            break;
+         default:
+         break;
+      }
+   tmp = tmp->next;
+         switch (tmp->typ)
+      {
+         case LIT_DOUBLE:
+            debug("%f\n", tmp->value.doubleValue);
+            break;
+         case LIT_INT:
+            debug("%d\n", tmp->value.intValue);
+            break;
+         case CHAIN:
+            debug("%s\n", tmp->value.stringValue);
+            break;
+         case PLUS:
+            debug("+\n");
+            break;
+            case MULTIPLIER:
+            debug("*\n");
+            break;
+         default:
+         break;
+      }
+         tmp = tmp->next;
+         switch (tmp->typ)
+      {
+         case LIT_DOUBLE:
+            debug("%f\n", tmp->value.doubleValue);
+            break;
+         case LIT_INT:
+            debug("%d\n", tmp->value.intValue);
+            break;
+         case CHAIN:
+            debug("%s\n", tmp->value.stringValue);
+            break;
+         case PLUS:
+            debug("+\n");
+            break;
+         case MULTIPLIER:
+            debug("*\n");
+            break;
+         default:
+         break;
+      }
 
+
+}
 
 int pop()
 {
@@ -72,7 +158,17 @@ int pop()
       zasobnik = zasobnik->next;
    } 
    zasobnik = tmp;
+   
    char pole[i+1];
+   /*
+   if ((zasobnik->data == 'p') ||
+       (zasobnik->data == 'i') || 
+       (zasobnik->data == 'd') ||
+       (zasobnik->data == 's'))
+   {
+      printValue(tmp);
+   }
+*/
    while (zasobnik->data != ':')
    {
       pole[y] = zasobnik->data;
@@ -82,29 +178,26 @@ int pop()
       free(tmp);
    }
    tmp = zasobnik;
+   
    zasobnik = zasobnik->next;
-   free(tmp);
+  // free(tmp);
    pole[y] = '\0';
+
+   
    if 	  (!(vysledek = strcmp(pole,"p"))) 	 push(2, zasobnik);
-   else if (!(vysledek = strcmp(pole,"E+E"))) push(2, zasobnik);
+   else if (!(vysledek = strcmp(pole,"E+E"))) { push(2, zasobnik);}
    else if (!(vysledek = strcmp(pole,"E-E"))) push(2, zasobnik);
    else if (!(vysledek = strcmp(pole,"i"))) 	 push(2, zasobnik);
    else if (!(vysledek = strcmp(pole,"d"))) 	 push(2, zasobnik);
    else if (!(vysledek = strcmp(pole,"s"))) 	 push(2, zasobnik);
-   else if (!(vysledek = strcmp(pole,"E*E"))) push(2, zasobnik);
+   else if (!(vysledek = strcmp(pole,"E*E"))) { push(2, zasobnik);}
    else if (!(vysledek = strcmp(pole,"E/E"))) push(2, zasobnik);
    else if (!(vysledek = strcmp(pole,"E(")))  push(2, zasobnik);
    else
    {
       if (podminka)
       {
-         if 	  (!(vysledek=strcmp(pole,"<E")))  push(0, zasobnik);
-         else if (!(vysledek=strcmp(pole,">E")))  push(0, zasobnik);
-         else if (!(vysledek=strcmp(pole,"=>E"))) push(0, zasobnik);
-         else if (!(vysledek=strcmp(pole,"<=E"))) push(0, zasobnik);
-         else if (!(vysledek=strcmp(pole,"==E"))) push(0, zasobnik);
-         else if (!(vysledek=strcmp(pole,"!=E"))) push(0, zasobnik);
-         else if (!(vysledek=strcmp(pole,"E<E"))) push(2, zasobnik);
+         if (!(vysledek=strcmp(pole,"E<E"))) push(2, zasobnik);
          else if (!(vysledek=strcmp(pole,"E>E"))) push(2, zasobnik);
          else if (!(vysledek=strcmp(pole,"EoE"))) push(2, zasobnik);
          else if (!(vysledek=strcmp(pole,"EgE"))) push(2, zasobnik);

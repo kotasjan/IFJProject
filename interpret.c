@@ -1,39 +1,29 @@
 #include "interpret.h"
 #include "ifj.h"
+#include "ial.h"
 #include "instruction.h"
+#include "parse_new.h"
 
-tInstructionItem *instInsert(tInstructionList *instList)
-{
+int interpret(tInstructionList *L){
+    //int error = 0;
+   // tStackList *stackList = (tStackList*)calloc(1, sizeof(tStackList));
+    //stackInstructionInit(stackList);
+   // tStackTrees stackTrees;
+  //  stackInit(&stackTrees);
+   // string tempStr;
+   // strInit(&tempStr);
+   table *GlobalTable;
 
-   tInstructionItem *instr;
-   if ((NULL == (instr = calloc(1, sizeof(tInstructionItem)))))
-   {
-      return NULL;
+
+    listFirst(L);
+    while(L->active != NULL){
+        switch (L->active->Instruction->InstrType){
+
+            case I_PUSH_GLOBAL:
+            printf("asdsada\n");
+               GlobalTable = globalTS;
+               L->active = L->active->next;
+               break;
+         }
+      }
    }
-
-   if(!instList->first)
-   {
-      instList->first = instList->last = instr;
-   }
-   else
-   {
-      instr->prev = instList->last;
-      instList->last->next = instr;
-      instList->last = instr;
-   }
-
-   return instr;
-}
-
-tInstruction *createInst(tInstrType typ, void *addr1, void *addr2, void *addr3)
-{
-   tInstruction *newInst;
-   if ((NULL == (newInst = malloc(sizeof(tInstruction))))) { return NULL; }
-
-   newInst->instrType = typ;
-   newInst->addr1 = addr1;
-   newInst->addr2 = addr2;
-   newInst->addr3 = addr3;
-
-   return newInst;
-}

@@ -1,5 +1,6 @@
 #pragma once
 #include "ial.h"
+#include "scaner.h"
 
 #define VELIKOST_TABULKY 18
 
@@ -27,5 +28,12 @@ static const char PrecedencniTabulka[VELIKOST_TABULKY][VELIKOST_TABULKY]={
 typedef struct expStack
 {
    char data;
+   state typ;
    struct expStack *next;
+   union 
+   {
+      int intValue;
+      double doubleValue;
+      char *stringValue;
+   }value;
 } tExpStack;

@@ -26,7 +26,6 @@ void printFunction(tFunc *func)
    debugFunc("Function name: %s\n", func->name);
    debugFunc("Function retType: %s\n", func->retType == TYPE_INT ? "int" : func->retType == TYPE_DOUBLE ? "double" : func->retType == TYPE_STRING ? "String" : "void" );
    debugFunc("Function paramCnt: %u\n", func->paramCnt);
-   debugFunc("Function deklaration: %s\n", func->isDeclared ? "true" : "false" );
    tFuncParam *tmp = func->param;
    int i = 0;
    while(tmp)
@@ -50,10 +49,6 @@ void printTS(table *TS)
          {
             printf("CLASS: %s\n", (*TS)[i]->key);
             tClass *t = item->dataPtr;
-            if(!t->isDeclared){
-               printf("neni deklarovana class %s\n",(*TS)[i]->key );
-               exit(1);
-            }
             table *class = t->symbolTable;
             for(int j = 0; j < 100; j++)
             {
@@ -74,7 +69,6 @@ void printTS(table *TS)
                      debugVar("Variable Name: %s\n", var->id);
                      debugVar("Variable type: %s\n", var->type == TYPE_INT ? "int" : var->type == TYPE_DOUBLE ? "double" : var->type == TYPE_STRING ? "string" : "void" );
                      debugVar("Variable init: %s\n", var->init ? "true" : "false");
-                     debugVar("Variable isDeclared: %s\n", var->isDeclared ? "true" : "false");
                   }
 
                }
@@ -243,20 +237,24 @@ char *printTok(tToken *token)
 }
 
 char giveTok(tToken *token){
+
 switch(token->type)
    {
       case FULL_IDENTIFIER:
       case IDENTIFIER:
          return 'p';
-      case STRING:
-      case CHAIN:   
-         return 's';
-      case INT:           
+      case CHAIN: 
+         token->value.stringValue=token->id;  
+         return 's';         
       case LIT_INT:
+         token->value.intValue=atoi(token->id);
          return 'i';
-      case DOUBLE:
       case LIT_DOUBLE:
+      {
+         char *ptr; 
+         token->value.doubleValue=strtod(token->id,&ptr);
          return 'd';
+      }
        case LEFT_BRACKET:
          return '(';
       case RIGHT_BRACKET:
