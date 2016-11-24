@@ -156,7 +156,7 @@ char *printTok(tToken *token)
          return "==";
          break;
       case LESS:
-         return ;
+         return "<";
          break;
       case GREATER_OR_EQUAL:
          return ">=";
