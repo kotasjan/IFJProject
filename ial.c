@@ -26,7 +26,7 @@ char *substr(char *s, int i, int n) {
 int compare(char *s1, char *s2) {
 
     int i = 0;
-    while ( s1[i] != '\0' ) {
+    while (s1[i] != '\0') {
     	
         if( s2[i] == '\0' ) return 1; 
         else if( s1[i] > s2[i] ) return 1; 
@@ -34,6 +34,7 @@ int compare(char *s1, char *s2) {
 
         i++;
     } 
+	if (s2[i] != '\0') return -1;
 
     return 0;
 
@@ -54,10 +55,14 @@ int readInt() {
 	
 	for(int i = 0; i < strlen(str); i++)
 	{
-		if (!isdigit(str[i])) return -2;		// neodpovida zadani - pouze cislice
+		if (!isdigit(str[i])) 
+		{ 
+			free(str);
+			return -2;		// neodpovida zadani - pouze cislice
+		}
 	}
 	
-	int x = atoi (str);
+	int x = atoi (str);		// neni treba resit podteceni/preteceni
 	free(str);
 	return x;
 }
@@ -81,6 +86,7 @@ double readDouble() {
 		}
 		else
 		{
+			free(str);
 			return -2;	
 		}
 			
@@ -88,10 +94,18 @@ double readDouble() {
 	
 	if (str[0] == '+' || str[0] == '-')
 	{
+		free(str);
 		return -2;							// strtod to bere, ale zadani to nepovoluje
 	}
 	
-	double x = strtod (str, NULL);
+	char* error;
+	
+	double x = strtod (str, &error);
+	if (error[0] != '\0')
+	{
+		free(str);
+		return -2;
+	}
 	free(str);
 	return x;
 }
@@ -120,7 +134,7 @@ void print_int(int x)
 
 void print_double(double x)
 {
-	char * str = malloc(24);
+	char * str = malloc(64);
 	if (str == NULL) return;
 	
 	sprintf(str, "%g", x);
