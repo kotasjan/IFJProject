@@ -3,7 +3,10 @@ class Main {
 
 	static void run(){
 		Main.a = 2;
-		int b = 5;
-		int b = Main.a + 2;
+		neco(Main.a);
+	}
+
+	static void neco(int a, String b){
+
 	}
 }

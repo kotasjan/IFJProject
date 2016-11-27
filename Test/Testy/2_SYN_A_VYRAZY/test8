@@ -1,4 +1,4 @@
-class Main 
+class Main {
 	static double a = 5 / 3 (* 2);
 
 	static void run(){

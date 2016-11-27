@@ -2,6 +2,6 @@ class Main {
 	static int a = 5;
 
 	static void Run() {
-		.print("ahoj");
+		ifj16.print("ahoj");
 	}
 }
