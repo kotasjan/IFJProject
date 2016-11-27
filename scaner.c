@@ -22,7 +22,7 @@ void setFile(FILE *fp)
 
 int checkSize(tToken *data)
 {
-	if (data->length >= data->allocSize)
+	if (data->length+1 >= data->allocSize)
 	{
 		data->id = realloc (data->id, sizeof(char) * ((data->allocSize)+REALLOC_SIZE) );
 		if (data->id == NULL)
