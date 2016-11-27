@@ -10,139 +10,403 @@ tExpStack *zasobnik;
 tToken token;
 bool podminka=false;
 tStack *stack;
+tValueStack *top;
+tToken *vysExp;
 
-int stackInit(){
-	tExpStack *tmp=(tExpStack*)malloc(sizeof(tExpStack));
-	if(tmp==NULL){
-		return INTERNAL_ERROR;
-	}
-	else{
-		tmp->data='$';
-		tmp->next=NULL;
-		zasobnik=tmp;
-      return SUCCESS;
-	}
-}
-void dat_typ(tExpStack **tmp){
-   (*tmp)->typ = token.type;
-
-   switch(token.type){
-      case LIT_INT: 
-         (*tmp)->value.intValue=token.value.intValue; 
-         //debug("Int cislo %d\n", (*tmp)->value.intValue);
-         break;
-      case LIT_DOUBLE:  
-         (*tmp)->value.doubleValue=token.value.doubleValue; 
-        // debug("Double cislo %f\n", (*tmp)->value.doubleValue);
-         break;
-      case CHAIN: 
-         (*tmp)->value.stringValue=token.value.stringValue; 
-         //debug("String %s\n", (*tmp)->value.stringValue);
-         break;
+tList *lookVarStackExp()
+{
+   tList *data = tsRead(stack->table, token.id);
+   if (data) 
+   { 
+      debug("nasel sem promenou '%s'\n", token.id);  
+      if (data->func) { debug("Funkce ve vyrazu"); return NULL; }
+      return data; 
+   }
+   if (stack->next)
+   {
+      data = tsRead(stack->next->table, token.id);
+      if (data) 
+      { 
+         debug("nasel sem promenou '%s'\n", token.id); 
+         if (data->func) { debug("Funkce ve vyrazu"); return NULL; } 
+         return data; 
       }
-   return;
+      debug("Promenna '%s' neni deklarovana\n", token.id);
+   }
+   else
+   {
+      debug("Promenna '%s' neni deklarovana\n", token.id);
+   }
+   return NULL;
 }
 
-int push(int znacka, tExpStack *pom)
+struct conStr
+{
+   unsigned alloc;
+   unsigned len;
+   char * str;
+   bool concat;
+   bool plus;
+} conStr;
+
+int checkSizeStr(int length)
+{
+   if (conStr.len+length+1 >= conStr.alloc)
+   {
+      while ( conStr.len+length+1 >= conStr.alloc )
+      {
+         conStr.alloc += 20;
+      }
+      conStr.str = realloc (conStr.str, sizeof(char) * (conStr.alloc) );
+      if (conStr.str == NULL)
+      {
+         return -1;
+      }
+      
+   }
+   return 0;
+}
+
+int addConCat() 
+{
+   if (conStr.concat)
+   {
+      if (checkSizeStr(strlen(token.id))) return INTERNAL_ERROR;
+      sprintf(&conStr.str[conStr.len], "%s", token.id); 
+      conStr.len += strlen(token.id);
+   }
+
+   return SUCCESS;
+}
+
+int getVal(tValueStack **val){
+
+   switch(token.type)
+   {
+      case LIT_INT: 
+         if (addConCat()) return INTERNAL_ERROR;
+         (*val)->value.intValue=token.value.intValue; 
+         debug("Int cislo %d\n", (*val)->value.intValue);
+         (*val)->typ = TYPE_INT;
+         return SUCCESS;
+
+      case LIT_DOUBLE:  
+         if (addConCat()) return INTERNAL_ERROR;
+         (*val)->value.doubleValue=token.value.doubleValue; 
+         debug("Double cislo %f\n", (*val)->value.doubleValue);
+         (*val)->typ = TYPE_DOUBLE;
+         return SUCCESS;
+
+      case CHAIN: 
+         if (addConCat()) return INTERNAL_ERROR;
+         (*val)->value.stringValue=token.value.stringValue; 
+         debug("String %s\n", (*val)->value.stringValue);
+         (*val)->typ = TYPE_STRING;
+         return SUCCESS;
+
+      case IDENTIFIER:
+      {
+         tList *data = lookVarStackExp();
+         if (!data) { return SYNTAX_ERROR; }
+         tVar *var = data->dataPtr;
+         if (!var->init) { debug("Neinicializovana promenna ve vyrazu\n"); return SEM_ERROR; } // asi jina chyba
+         return SUCCESS;
+      }
+      case MINUS:
+      case MULTIPLIER:
+      case DIVISION:
+         conStr.concat = false;
+         (*val)->typ = token.type;
+         return SUCCESS;
+      case PLUS:
+         conStr.plus = true;
+         (*val)->typ = token.type;
+         return SUCCESS;
+   }
+
+   return 1;
+}
+
+int push(char c, int typ, tExpStack *pom)
 {
    tExpStack *tmp = (tExpStack*) malloc(sizeof(tExpStack));
    if (!tmp) { return INTERNAL_ERROR; }
-   if (znacka == 0)
+
+   switch (typ)
    {
-      //printf("AAAAAAAAAAAAAAAAAAAAAAA%c\n",giveTok(&token));
-		tmp->data=giveTok(&token);
-      dat_typ(&tmp);
-		tmp->next=zasobnik;
-		zasobnik=tmp;
-	}
-   if (znacka == 1)
-   {
-      tmp->data=':';
-      tmp->next=pom;
-      if (pom == zasobnik)
+      case PUSH_NEW:
       {
+         tValueStack *val = (tValueStack*) malloc(sizeof(tValueStack));
+         if (!val) return INTERNAL_ERROR;
+         if(getVal(&val))
+            free(val);
+         else
+         {
+            val->next = top;
+            top = val;
+         }
+      }      
+      case PUSH_REDUCE:
+      {
+         tmp->next=zasobnik;
+         tmp->data=c;
          zasobnik=tmp;
+         break;
       }
-      else
+      case PUSH_END:
       {
-         //printf("Ted by se to hodilo \n\n");
-         zasobnik->next=tmp;
-      }  
+         tmp->data=c;
+         tmp->next=NULL;
+         zasobnik = tmp;
+         break;
+      }
+      case PUSH_STOP:
+      {
+         tmp->data=c;
+         tmp->next=pom;
+         if(pom==(zasobnik)) zasobnik=tmp;
+         else (zasobnik)->next=tmp;
+         break;
+      }
    }
 
-   if (znacka == 2)
-   {
-      tmp->data='E';
-      tmp->next=zasobnik;
-      zasobnik=tmp;
-   }   
    return SUCCESS;
 }
-void printValue(tExpStack *tmp)
+
+int controlType(oper, typ)
 {
-   static int i = 0;
+   switch (oper)
+   {
+      case '+':
+      {
+         if (vysExp->type == TYPE_UNDEF) { vysExp->type = typ; return vysExp->type; }
+         if (vysExp->type == TYPE_INT && typ == TYPE_INT)       return vysExp->type;
+         if (vysExp->type == TYPE_DOUBLE && typ == TYPE_DOUBLE) return vysExp->type;
+         if (vysExp->type == TYPE_DOUBLE && typ == TYPE_INT)    return vysExp->type;
+         if (vysExp->type == TYPE_STRING && typ == TYPE_STRING) return vysExp->type;
+         if (vysExp->type == TYPE_STRING && typ == TYPE_DOUBLE) return vysExp->type;
+         if (vysExp->type == TYPE_STRING && typ == TYPE_INT)    return vysExp->type;
+         if (vysExp->type == TYPE_INT && typ == TYPE_DOUBLE)    { vysExp->type = TYPE_DOUBLE; return vysExp->type; }
+         if (vysExp->type == TYPE_INT && typ == TYPE_STRING)    { vysExp->type = TYPE_STRING; return vysExp->type; }
+         if (vysExp->type == TYPE_DOUBLE && typ == TYPE_STRING) { vysExp->type = TYPE_STRING; return vysExp->type; }
+      }
+      case '-':
+      case '*':
+      case '/':
+      {
+         if (vysExp->type == TYPE_UNDEF) { vysExp->type = typ; return vysExp->type; }
+         if (vysExp->type == TYPE_INT && typ == TYPE_INT)       return vysExp->type;
+         if (vysExp->type == TYPE_DOUBLE && typ == TYPE_DOUBLE) return vysExp->type;
+         if (vysExp->type == TYPE_DOUBLE && typ == TYPE_INT)    return vysExp->type;
+         if (vysExp->type == TYPE_STRING && typ == TYPE_STRING) return TYPE_UNDEF;
+         if (vysExp->type == TYPE_STRING && typ == TYPE_DOUBLE) return TYPE_UNDEF;
+         if (vysExp->type == TYPE_STRING && typ == TYPE_INT)    return TYPE_UNDEF;
+         if (vysExp->type == TYPE_INT && typ == TYPE_STRING)    return TYPE_UNDEF;
+         if (vysExp->type == TYPE_DOUBLE && typ == TYPE_STRING) return TYPE_UNDEF; 
+         if (vysExp->type == TYPE_INT && typ == TYPE_DOUBLE)    { vysExp->type = TYPE_DOUBLE; return vysExp->type; }
+      }      
+   }
+}
+
+int calcVal(char oper, tType typ)
+{
+   switch (oper)
+   {
+      case '-':
+      {
+         switch (controlType(oper, typ))
+         {
+            case TYPE_UNDEF:
+            {
+               debug("Nekompatibilni datove type %s - %s\n", typ == TYPE_STRING ? "String" : typ == TYPE_INT ? "int" : "double",
+                                           vysExp->type == TYPE_STRING ? "String" : vysExp->type == TYPE_INT ? "int" : "double");
+               return SEM_ERROR;
+            }
+            case TYPE_INT: top->next->next->value.intValue = top->next->next->value.intValue - top->value.intValue; break;
+            case TYPE_DOUBLE: top->next->next->value.doubleValue = top->next->next->value.doubleValue - top->value.doubleValue; break;
+            case TYPE_STRING:
+               break;
+         }
+         break;
+      }
+      case '+':
+      {
+         switch (controlType(oper, typ))
+         {
+            case TYPE_UNDEF:
+            {
+               debug("Nekompatibilni datove type %s - %s\n", typ == TYPE_STRING ? "String" : typ == TYPE_INT ? "int" : "double",
+                                           vysExp->type == TYPE_STRING ? "String" : vysExp->type == TYPE_INT ? "int" : "double");
+               return SEM_ERROR;
+            }
+            case TYPE_INT:  top->next->next->value.intValue = top->value.intValue + top->next->next->value.intValue; break;
+            case TYPE_DOUBLE: top->next->next->value.doubleValue = top->value.doubleValue + top->next->next->value.doubleValue; break;
+            case TYPE_STRING:
+               break;
+         }
+         break;
+      }
+      case '/':
+      {
+         switch (controlType(oper, typ))
+         {
+            case TYPE_UNDEF:
+            {
+               debug("Nekompatibilni datove type %s - %s\n", typ == TYPE_STRING ? "String" : typ == TYPE_INT ? "int" : "double",
+                                           vysExp->type == TYPE_STRING ? "String" : vysExp->type == TYPE_INT ? "int" : "double");
+               return SEM_ERROR;
+            }
+            case TYPE_INT: top->next->next->value.intValue =  top->next->next->value.intValue / top->value.intValue; break;
+            case TYPE_DOUBLE: top->next->next->value.doubleValue = top->next->next->value.doubleValue / top->value.doubleValue; break;
+            case TYPE_STRING:
+               break;
+         }
+         break;
+      }
+      case '*':
+      {
+         switch (controlType(oper, typ))
+         {
+            case TYPE_UNDEF:
+            {
+               debug("Nekompatibilni datove type %s - %s\n", typ == TYPE_STRING ? "String" : typ == TYPE_INT ? "int" : "double",
+                                           vysExp->type == TYPE_STRING ? "String" : vysExp->type == TYPE_INT ? "int" : "double");
+               return SEM_ERROR;
+            }
+            case TYPE_INT: top->next->next->value.intValue = top->value.intValue * top->next->next->value.intValue; break;
+            case TYPE_DOUBLE: top->next->next->value.doubleValue = top->value.doubleValue * top->next->next->value.doubleValue; break;
+            case TYPE_STRING:
+               break;
+         }
+         break;
+      }
+   }
+
+
+   top = top->next->next;
+  // printVal();
+
+
+}
+void printVal()
+{
+   tValueStack *tmp = top;
+   printf("-----------\n");
+   while(tmp)
+   {
       switch (tmp->typ)
       {
-         case LIT_DOUBLE:
-            debug("%f\n", tmp->value.doubleValue);
+         case TYPE_INT:
+         {
+            printf("%d\n", tmp->value.intValue);
             break;
-         case LIT_INT:
-            debug("%d\n", tmp->value.intValue);
+         }
+         case TYPE_DOUBLE:
+         {
+            printf("%f\n", tmp->value.doubleValue); 
             break;
-         case CHAIN:
-            debug("%s\n", tmp->value.stringValue);
-            break;
-         case PLUS:
-            debug("+\n");
-         case MULTIPLIER:
-            debug("*\n");
-            break;
-         default:
-         break;
-      }
-   tmp = tmp->next;
-         switch (tmp->typ)
-      {
-         case LIT_DOUBLE:
-            debug("%f\n", tmp->value.doubleValue);
-            break;
-         case LIT_INT:
-            debug("%d\n", tmp->value.intValue);
-            break;
-         case CHAIN:
-            debug("%s\n", tmp->value.stringValue);
-            break;
-         case PLUS:
-            debug("+\n");
-            break;
-            case MULTIPLIER:
-            debug("*\n");
-            break;
-         default:
-         break;
-      }
-         tmp = tmp->next;
-         switch (tmp->typ)
-      {
-         case LIT_DOUBLE:
-            debug("%f\n", tmp->value.doubleValue);
-            break;
-         case LIT_INT:
-            debug("%d\n", tmp->value.intValue);
-            break;
-         case CHAIN:
-            debug("%s\n", tmp->value.stringValue);
-            break;
-         case PLUS:
-            debug("+\n");
-            break;
-         case MULTIPLIER:
-            debug("*\n");
-            break;
-         default:
-         break;
-      }
 
+         }
+         case TYPE_STRING:
+         {
+            printf(" %s\n", tmp->value.stringValue); 
+            break;
+
+         }
+         case PLUS:
+            printf("+\n");
+       
+            break;
+
+         case MINUS:
+            printf("-\n");
+    
+            break;
+         case DIVISION:
+            printf("/\n");
+
+            break;
+         case MULTIPLIER:
+            printf("*\n");
+
+            break;
+      }
+      tmp=tmp->next;
+   }
+
+   printf("-----------\n");
+
+}
+
+void sumVal()
+{
+   tValueStack *tmp = top;
+   int i = 0;
+   int typ = TYPE_UNDEF;
+   char oper = 'u';
+   while(tmp)
+   {
+      switch (tmp->typ)
+      {
+         case TYPE_INT:
+         {
+            if(typ == TYPE_UNDEF) { debug("Nastavuji typ INT\n"); typ = TYPE_INT; }
+            else if(typ == TYPE_INT) {}
+            else if (typ == TYPE_DOUBLE) { debug("Pretypovavam INT na  DOUBLE\n"); tmp->value.doubleValue = tmp->value.intValue; typ = TYPE_DOUBLE; }
+            else if (typ == TYPE_STRING && oper == '+') { debug("Pretypovavam INT na  String\n"); typ = TYPE_STRING; }
+            else debug("Spatne typy\n");
+            //printf("INT HODNOTA %d\n", tmp->value.intValue);
+            break;
+         }
+         case TYPE_DOUBLE:
+         {
+            if(typ == TYPE_UNDEF)  typ = TYPE_DOUBLE;
+            else if(typ == TYPE_DOUBLE) {}
+            else if (typ == TYPE_INT) { debug("Pretypovavam INT na DOUBLE\n"); top->value.doubleValue = top->value.intValue; typ = TYPE_DOUBLE; }
+            else if (typ == TYPE_STRING && oper == '+') { debug("Pretypovavam DOUBLE na  String\n"); typ = TYPE_STRING; }
+            else debug("Spatne typy\n");
+            //printf("DOUBLE HODNOTA %f\n", tmp->value.doubleValue); 
+            break;
+
+         }
+         case TYPE_STRING:
+         {
+            typ = TYPE_STRING;
+            //if (oper != '+' && oper != 'u')// printf("ERRORR STRING\n");
+            //printf("String HODNOTA %s\n", tmp->value.stringValue); 
+            break;
+
+         }
+         case PLUS:
+            //printf("+\n");
+            oper = '+';
+            break;
+
+         case MINUS:
+            //printf("-\n");
+            oper = '-';
+            break;
+         case DIVISION:
+            //printf("/\n");
+            oper = '/';
+            break;
+         case MULTIPLIER:
+            //printf("*\n");
+            oper = '*';
+            break;
+      }
+      i++;
+      if (i == 3) break;
+      tmp=tmp->next;
+
+   }
+   if (i==3)
+   {
+      calcVal(oper, typ);
+      top = tmp;
+   }
+   
+ //printVal();
 
 }
 
@@ -158,17 +422,7 @@ int pop()
       zasobnik = zasobnik->next;
    } 
    zasobnik = tmp;
-   
    char pole[i+1];
-   /*
-   if ((zasobnik->data == 'p') ||
-       (zasobnik->data == 'i') || 
-       (zasobnik->data == 'd') ||
-       (zasobnik->data == 's'))
-   {
-      printValue(tmp);
-   }
-*/
    while (zasobnik->data != ':')
    {
       pole[y] = zasobnik->data;
@@ -178,62 +432,103 @@ int pop()
       free(tmp);
    }
    tmp = zasobnik;
-   
+
    zasobnik = zasobnik->next;
-  // free(tmp);
+   free(tmp);
    pole[y] = '\0';
 
    
-   if 	  (!(vysledek = strcmp(pole,"p"))) 	 push(2, zasobnik);
-   else if (!(vysledek = strcmp(pole,"E+E"))) { push(2, zasobnik);}
-   else if (!(vysledek = strcmp(pole,"E-E"))) push(2, zasobnik);
-   else if (!(vysledek = strcmp(pole,"i"))) 	 push(2, zasobnik);
-   else if (!(vysledek = strcmp(pole,"d"))) 	 push(2, zasobnik);
-   else if (!(vysledek = strcmp(pole,"s"))) 	 push(2, zasobnik);
-   else if (!(vysledek = strcmp(pole,"E*E"))) { push(2, zasobnik);}
-   else if (!(vysledek = strcmp(pole,"E/E"))) push(2, zasobnik);
-   else if (!(vysledek = strcmp(pole,"E(")))  push(2, zasobnik);
+   if      (!(vysledek = strcmp(pole,"p")))   push('E', PUSH_REDUCE, NULL);
+   else if (!(vysledek = strcmp(pole,"E+E"))) { sumVal(); push('E', PUSH_REDUCE, NULL); }
+   else if (!(vysledek = strcmp(pole,"E-E"))) { sumVal(); push('E', PUSH_REDUCE, NULL); }
+   else if (!(vysledek = strcmp(pole,"i")))   push('E', PUSH_REDUCE, NULL);
+   else if (!(vysledek = strcmp(pole,"d")))   push('E', PUSH_REDUCE, NULL);
+   else if (!(vysledek = strcmp(pole,"s")))   push('E', PUSH_REDUCE, NULL);
+   else if (!(vysledek = strcmp(pole,"E*E"))) { sumVal(); push('E', PUSH_REDUCE, NULL); }
+   else if (!(vysledek = strcmp(pole,"E/E"))) { sumVal(); push('E', PUSH_REDUCE, NULL); }
+   else if (!(vysledek = strcmp(pole,"E(")))  {  push('E', PUSH_REDUCE, NULL); }
    else
    {
       if (podminka)
       {
-         if (!(vysledek=strcmp(pole,"E<E"))) push(2, zasobnik);
-         else if (!(vysledek=strcmp(pole,"E>E"))) push(2, zasobnik);
-         else if (!(vysledek=strcmp(pole,"EoE"))) push(2, zasobnik);
-         else if (!(vysledek=strcmp(pole,"EgE"))) push(2, zasobnik);
-         else if (!(vysledek=strcmp(pole,"EeE"))) push(2, zasobnik);
-         else if (!(vysledek=strcmp(pole,"EnE"))) push(2, zasobnik);
+         if (!(vysledek=strcmp(pole,"E<E"))) push('E', PUSH_REDUCE, NULL);
+         else if (!(vysledek=strcmp(pole,"E>E"))) push('E', PUSH_REDUCE, NULL);
+         else if (!(vysledek=strcmp(pole,"EoE"))) push('E', PUSH_REDUCE, NULL);
+         else if (!(vysledek=strcmp(pole,"EgE"))) push('E', PUSH_REDUCE, NULL);
+         else if (!(vysledek=strcmp(pole,"EeE"))) push('E', PUSH_REDUCE, NULL);
+         else if (!(vysledek=strcmp(pole,"EnE"))) push('E', PUSH_REDUCE, NULL);
          else return SYNTAX_ERROR;
       }
       else return SYNTAX_ERROR;
    }     
       
-   vypis_zasobniku(zasobnik);
+   //vypis_zasobniku(zasobnik);
    
    return SUCCESS;
 }
 
-int expression(bool logic, tStack *stackTop)
+int initVysExp()
 {
-   if (logic) podminka=true;
-   int result;
-   if (token.type == SEMICOLON) { return SYNTAX_ERROR; }
-   stack = stackTop;
-   tList *data;
+   vysExp = calloc(1, sizeof(tToken));
+   if (!vysExp) return INTERNAL_ERROR;
+   vysExp->type = TYPE_UNDEF;
+   return SUCCESS;
+}
 
-  
- //  printf("ZACATEK\n\n\n");
-   if ((result = stackInit())) { return result; }
-   if ((result = co_delat())) { return result; }
+int initConStr()
+{
+   conStr.len = 0;
+   conStr.alloc = 20;
+   conStr.str = malloc(20);
+   if (!conStr.str) return INTERNAL_ERROR;
+   conStr.concat = true;
+   conStr.plus = false;
+   return SUCCESS;
+
+}
+
+int get_int_len (int value){
+  int l=1;
+  while(value>9){ l++; value/=10; }
+  return l;
+}
+
+
+
+int expression(bool logic, tStack *stackTop)
+{   
+   int result;
+   if (token.type == SEMICOLON) return SYNTAX_ERROR;
+
+   if (initVysExp()) return INTERNAL_ERROR;
+   if (initConStr()) return INTERNAL_ERROR;
+   
+   stack = stackTop;
+
+   if ((result = push('$', PUSH_END, NULL))) { return result; } 
+   if ((result = processing_expression(logic))) { return result; }
    cisteni();
+
+/*
+   if (vysExp->type == TYPE_INT)
+      printf("VYSLEDEK typu INT %d \n",top->value.intValue);
+   if (vysExp->type == TYPE_DOUBLE)
+      printf("VYSLEDEK typu DOUBLE %f\n",top->value.doubleValue);
+   if (vysExp->type == TYPE_STRING && conStr.concat)
+   {
+      vysExp->value.stringValue = conStr.str;
+      printf("VYSLEDEK typu STRING %s\n",vysExp->value.stringValue);
+   }
+   else
+      debug("Chyba typu string\n");
+      */
    debug("Expr: vse ok %d\n" , result);
-  // printf("KONEC\n\n\n");
    return result;     
 }
 
-tExpStack* nejblizsi_terminal()
+tExpStack* nearestTerminal()
 {
-   tExpStack *vys=zasobnik; 
+   tExpStack *vys = zasobnik; 
    while (vys)
    {
       switch (vys->data)
@@ -259,126 +554,92 @@ tExpStack* nejblizsi_terminal()
          case 'n':
          return vys;
 
-         case 'r': return NULL;
+         case 'r': 
+            return NULL;
 
-         default: break;
+         default: 
+            break;
       }
       vys=vys->next;
    }
- // printf("Neco je spatne!");
+   return NULL;
 
 }
 
-int co_delat(){
-   bool konec=false;
-   int vysledek1=0;
-   int vysledek2=0;
+int processing_expression(bool logic)
+{
+   bool end = false;
+   int row_index=0;
+   int col_index=0;
    int result;
    tExpStack *pom;
-   if (NULL == (pom = nejblizsi_terminal())) { return SYNTAX_ERROR; }
 
-  // printf("POM JE:%c\n",pom->data);
-  // printf("TOKEN JE: %c %d \n",giveTok(&token),token.type);
-   vypis_zasobniku(zasobnik);
-   for(int i=0;((konec==false)&&(i<VELIKOST_TABULKY));i++){
-      //printf("Hledam ... %d.Pruchod\n",i);
-      if(giveTok(&token)==PrecedencniTabulka[0][i]){
-        // printf("Nasel jsem shodu pro token na %d.prvku\n",i);
-         vysledek2=i;
-      }
-      if(pom->data==PrecedencniTabulka[i][0]){
-         vysledek1=i;
-        // printf("Nasel jsem shodu pro zasobnik na %d.prvku\n",i);
-      }
-      if((vysledek1!=0)&&(vysledek2!=0)){
-         konec=true;
-      }
-      if(i==(VELIKOST_TABULKY-1)&&(konec==false)) return SYNTAX_ERROR;
+   if (NULL == (pom = nearestTerminal())) return SYNTAX_ERROR; 
+
+
+   for (int i = 0; (!end) && (i < VELIKOST_TABULKY); i++)
+   {
+      if (giveTok(&token) == PrecedencniTabulka[0][i])
+         col_index = i;
+
+      if (pom->data == PrecedencniTabulka[i][0])
+         row_index = i;
+
+      if (row_index && col_index) end = true;
+      
+      if (i == (VELIKOST_TABULKY-1) && !end) return SYNTAX_ERROR;
    }
    
-  // printf("%c\n",zasobnik->data );
-   if((vysledek2==16)&&(vysledek1==17)&&('$'==zasobnik->data)) return SYNTAX_ERROR;
-   switch(PrecedencniTabulka[vysledek1][vysledek2]){
+   if ((col_index == 16) && (row_index == 17) && ('$' == zasobnik->data)) return SYNTAX_ERROR;
+   
+   switch (PrecedencniTabulka[row_index][col_index])
+   {
       case '<': 
-         if ((result = push(1,pom))) { return result; }
-         vypis_zasobniku(zasobnik);
-         if ((result = push(0,pom))) { return result; }
-            if((result = getToken(&token))) {
-               debug("%s\n", "ERROR - v LEX"); 
-               return result; 
-            }
-            
-        		
-         vypis_zasobniku(zasobnik);
-         if ((result = co_delat())) { return result; }
-
-
-      break;
+      {
+         if ((result = push(':', PUSH_STOP, pom))) { return result; }
+         if ((result = push(giveTok(&token), PUSH_NEW, NULL))) { return result; }
+         if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; } 
+         if ((result = processing_expression(logic))) { return result; }
+         break;
+      }
+      case '=': 
+         if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }
       case '>': 
-                //printf("Skocilo to do >\n");
-                vypis_zasobniku(zasobnik);
-                if ((result = pop())) { return result; }
-                if ((result = co_delat())) { return result; }
-      break;
-      case '=': //printf("Skocilo to do =\n");
-                vypis_zasobniku(zasobnik);
-                if ((result = pop())) { return result; }
-
-                  if((result = getToken(&token))) {
-                     debug("%s\n", "ERROR - v LEX"); 
-                     return result; 
-                  }
-
-		            
-               
-                vypis_zasobniku(zasobnik);
-                if ((result = co_delat())) { return result; }
-      break;
-      case '-': //printf("Skocilo to do -\n");
-                vypis_zasobniku(zasobnik);
-                //printf("%c\n",giveTok(&token));
-      break;
-      default:   return SUCCESS;
+      {
+         if ((result = pop())) { return result; }
+         if ((result = processing_expression(logic))) { return result; }
+         break;
+      }
+      default:  
+         return SUCCESS;
    }
 
-   
+   return SUCCESS;
 }
 
-void cisteni(){
+void cisteni()
+{
 
-while(zasobnik!=NULL){
-   tExpStack *tmp=zasobnik;
-   tmp->data="";
-   zasobnik=zasobnik->next;
-   free(tmp);
-}
+   while (zasobnik)
+   {
+      tExpStack *tmp=zasobnik;
+      tmp->data="";
+      zasobnik=zasobnik->next;
+      free(tmp);
+   }
 }
 
-int pocetPrvkuNaZasobniku(){
+
+void vypis_zasobniku()
+{
    tExpStack *aktualni;
    aktualni=zasobnik;
-   int pocitadlo=0;
-	  while(aktualni!=NULL){
-		  pocitadlo++;
-		  aktualni=aktualni->next;
-	  }
-   return pocitadlo;
-}
-
-
-
-void vypis_zasobniku(tExpStack *zasobnik){
-   tExpStack *aktualni;
-   aktualni=zasobnik;
-	 // printf("Zasobnik obsahuje polozky: ");
-	while(aktualni){
-		//printf("%c ",aktualni->data);
-		aktualni=aktualni->next;
-	}
-     
-//printf("\n");
-
-
-
+   printf("Zasobnik obsahuje polozky: ");
+   while (aktualni)
+   {
+      printf("%c ",aktualni->data);
+      aktualni=aktualni->next;
+   }
+   printf("\n");
 
 }

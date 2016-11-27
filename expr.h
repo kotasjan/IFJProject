@@ -7,8 +7,8 @@
 static const char PrecedencniTabulka[VELIKOST_TABULKY][VELIKOST_TABULKY]={
 
 /*           */{'Q','+','-','*','/','<','>','o','g','e','n','i','d','s','p','(',')','$'},
-/*	   +     */{'+','<','<','<','<','>','>','>','>','>','>','<','<','<','<','<','>','>'},
-/*	   -     */{'-','<','<','<','<','>','>','>','>','>','>','<','<','-','<','<','>','>'},
+/*	   +     */{'+','>','>','<','<','>','>','>','>','>','>','<','<','<','<','<','>','>'},
+/*	   -     */{'-','>','>','<','<','>','>','>','>','>','>','<','<','<','<','<','>','>'},
 /*	   *     */{'*','>','>','>','>','>','>','>','>','>','>','<','<','-','<','<','>','>'},
 /*	   /     */{'/','>','>','>','>','>','>','>','>','>','>','<','<','-','<','<','>','>'},
 /*	   <     */{'<','<','<','<','<','-','-','-','-','-','-','<','<','-','<','<','>','>'},
@@ -28,12 +28,36 @@ static const char PrecedencniTabulka[VELIKOST_TABULKY][VELIKOST_TABULKY]={
 typedef struct expStack
 {
    char data;
-   state typ;
    struct expStack *next;
+
+} tExpStack;
+
+
+typedef struct valueStack
+{
+   state typ;
    union 
    {
       int intValue;
       double doubleValue;
       char *stringValue;
    }value;
-} tExpStack;
+   struct valueStack *next;
+
+}tValueStack;
+
+typedef enum{
+   UNDEF,
+   PL,
+   MIN,
+   MUL,
+   DIV,
+} operation;
+
+enum
+{
+   PUSH_NEW,PUSH_STOP,
+   PUSH_END,PUSH_REDUCE,
+};
+
+int processing_expression(bool logic);
