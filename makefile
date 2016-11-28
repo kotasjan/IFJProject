@@ -1,4 +1,4 @@
-CFLAGS = -g -std=c99 -Wall -Wextra -pedantic -w -O3 
+CFLAGS = -g -std=c99 -Wall -Wextra -pedantic -w -O3 -DDEBUG
 CC = gcc
 TARGET = prekladac
 SOURCES = ial.h  scaner.h ifj.h debug.h parse_new.h ifj16Func.h expr.h interpret.h instruction.h tokenFifo.h

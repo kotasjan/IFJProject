@@ -252,6 +252,8 @@ int rovnFun(tFunc *func)
          if (token.type == IDENTIFIER)
          {
             data = lookVarStack(func);
+            if (!data) return SEM_ERROR;
+            class = data->dataPtr;
             // data = tsCheck(func->stack->table);
             if (!data) { debug("Nedeklarovana funkce/promenna '%s'\n", token.id); return SEM_ERROR; }
             if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
@@ -368,7 +370,7 @@ int rovnFun(tFunc *func)
             }
             case LEFT_BRACKET:
             {
-               if (tsCheckFunc(class->symbolTable, id)) { return SYNTAX_ERROR; }
+               if (tsCheckFunc(class->symbolTable, id)) { return SEM_ERROR; }
                tFunc *callFunc;
                if (createFunc(&callFunc, id, TYPE_VOID)) { return INTERNAL_ERROR; }
                if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
@@ -418,7 +420,7 @@ int strRovn(tFunc *func)
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != IDENTIFIER) { debug("Promenna nema identifkator\n"); return SYNTAX_ERROR; }
          var->id = token.id;
-         if (tsCheckVarFunc(func->stack->table, var->id)) { return SYNTAX_ERROR; }
+         if (tsCheckVarFunc(func->stack->table, var->id)) { return SEM_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = tsInsertVar(func->stack->table, var))) { return result; }
          debug("pridal jsem promennou '%s' do funkce '%s'\n", var->id, func->name);
@@ -442,7 +444,7 @@ int strRovn(tFunc *func)
                      if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
                      if (token.type == LEFT_BRACKET)
                      {
-                        if (tsCheckFunc(func->stack->next->table, funcName)) {  return SYNTAX_ERROR; }
+                        if (tsCheckFunc(func->stack->next->table, funcName)) {  return SEM_ERROR; }
                         tFunc *callFunc;
                         if (createFunc(&callFunc, funcName, var->type)) { return INTERNAL_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
@@ -568,7 +570,7 @@ int tsCheckVarFunc(table *TS, char *id)
    if (data)
    {
       debug("redeklarace promenne '%s'\n", id);
-     return SYNTAX_ERROR;
+     return SEM_ERROR;
    }
    else
    {
@@ -592,15 +594,16 @@ tList *tsCheck(table *TS)
 
 int tsCheckFunc(table *TS, char *id)
 {
+
    tList *data = tsRead(TS, id);
    if (data)
    {
-      if(!data->func) return SYNTAX_ERROR;
+      if(!data->func) return SEM_ERROR;
       return SUCCESS;
    }
    else
    {
-      return SYNTAX_ERROR;
+      return SEM_ERROR;
    }
 }
 
@@ -1047,7 +1050,7 @@ int tsInsertClass(tClass **class)
    else 
    { 
       debug("Trida %s jiz byla deklarovana\n", (*class)->name); 
-      return SYNTAX_ERROR;  // mozna jina chyba
+      return SEM_ERROR;  // mozna jina chyba
    }
 
    return SUCCESS;

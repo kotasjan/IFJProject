@@ -8,7 +8,6 @@
 
 tExpStack *zasobnik;
 tToken token;
-bool podminka=false;
 tStack *stack;
 tValueStack *top;
 tToken *vysExp;
@@ -107,9 +106,9 @@ int getVal(tValueStack **val){
       case IDENTIFIER:
       {
          tList *data = lookVarStackExp();
-         if (!data) { return SYNTAX_ERROR; }
+         if (!data) { return SEM_ERROR; }
          tVar *var = data->dataPtr;
-         if (!var->init) { debug("Neinicializovana promenna ve vyrazu\n"); return SEM_ERROR; } // asi jina chyba
+         if (!var->init) { debug("Neinicializovana promenna ve vyrazu\n"); return UNINITIALIZED_ERROR; } // asi jina chyba
          return SUCCESS;
       }
       case MINUS:
@@ -124,7 +123,7 @@ int getVal(tValueStack **val){
          return SUCCESS;
    }
 
-   return 1;
+   return -1;
 }
 
 int push(char c, int typ, tExpStack *pom)
@@ -138,8 +137,16 @@ int push(char c, int typ, tExpStack *pom)
       {
          tValueStack *val = (tValueStack*) malloc(sizeof(tValueStack));
          if (!val) return INTERNAL_ERROR;
-         if(getVal(&val))
+         if(getVal(&val) == -1)
+         {
             free(val);
+            
+         }
+         if(getVal(&val) > 0)
+         {
+            return SEM_ERROR; // predelat chybu 
+         }
+         
          else
          {
             val->next = top;
@@ -410,8 +417,10 @@ void sumVal()
 
 }
 
-int pop()
+int pop(bool logic)
 {
+
+   int result;
    tExpStack *tmp = zasobnik;
    int i = 0;
    int y = 0;
@@ -436,28 +445,28 @@ int pop()
    zasobnik = zasobnik->next;
    free(tmp);
    pole[y] = '\0';
-
    
-   if      (!(vysledek = strcmp(pole,"p")))   push('E', PUSH_REDUCE, NULL);
-   else if (!(vysledek = strcmp(pole,"E+E"))) { sumVal(); push('E', PUSH_REDUCE, NULL); }
-   else if (!(vysledek = strcmp(pole,"E-E"))) { sumVal(); push('E', PUSH_REDUCE, NULL); }
-   else if (!(vysledek = strcmp(pole,"i")))   push('E', PUSH_REDUCE, NULL);
-   else if (!(vysledek = strcmp(pole,"d")))   push('E', PUSH_REDUCE, NULL);
-   else if (!(vysledek = strcmp(pole,"s")))   push('E', PUSH_REDUCE, NULL);
-   else if (!(vysledek = strcmp(pole,"E*E"))) { sumVal(); push('E', PUSH_REDUCE, NULL); }
-   else if (!(vysledek = strcmp(pole,"E/E"))) { sumVal(); push('E', PUSH_REDUCE, NULL); }
-   else if (!(vysledek = strcmp(pole,"E(")))  {  push('E', PUSH_REDUCE, NULL); }
+   if      (!(vysledek = strcmp(pole,"p")))  { if ((result = push('E', PUSH_REDUCE, NULL))) return result; }
+   else if (!(vysledek = strcmp(pole,"E+E"))) { sumVal(); if ((result = push('E', PUSH_REDUCE, NULL))) return result; }
+   else if (!(vysledek = strcmp(pole,"E-E"))) { sumVal(); if ((result = push('E', PUSH_REDUCE, NULL))) return result; }
+   else if (!(vysledek = strcmp(pole,"i")))   { if ((result = push('E', PUSH_REDUCE, NULL))) return result; }
+   else if (!(vysledek = strcmp(pole,"d")))   { if ((result = push('E', PUSH_REDUCE, NULL))) return result; }
+   else if (!(vysledek = strcmp(pole,"s")))   { if ((result = push('E', PUSH_REDUCE, NULL))) return result; }
+   else if (!(vysledek = strcmp(pole,"E*E"))) { sumVal(); if ((result = push('E', PUSH_REDUCE, NULL))) return result; }
+   else if (!(vysledek = strcmp(pole,"E/E"))) { sumVal(); if ((result = push('E', PUSH_REDUCE, NULL))) return result; }
+   else if (!(vysledek = strcmp(pole,"E("))&&(token.type!=SEMICOLON))  { if ((result = push('E', PUSH_REDUCE, NULL))) return result; }
    else
    {
-      if (podminka)
+      if (logic)
       {
+
          if (!(vysledek=strcmp(pole,"E<E"))) push('E', PUSH_REDUCE, NULL);
          else if (!(vysledek=strcmp(pole,"E>E"))) push('E', PUSH_REDUCE, NULL);
-         else if (!(vysledek=strcmp(pole,"EoE"))) push('E', PUSH_REDUCE, NULL);
-         else if (!(vysledek=strcmp(pole,"EgE"))) push('E', PUSH_REDUCE, NULL);
+         else if (!(vysledek=strcmp(pole,"EoE"))) { push('E', PUSH_REDUCE, NULL); }
+         else if (!(vysledek=strcmp(pole,"EgE"))) { push('E', PUSH_REDUCE, NULL); }
          else if (!(vysledek=strcmp(pole,"EeE"))) push('E', PUSH_REDUCE, NULL);
          else if (!(vysledek=strcmp(pole,"EnE"))) push('E', PUSH_REDUCE, NULL);
-         else return SYNTAX_ERROR;
+         else { return SYNTAX_ERROR; }
       }
       else return SYNTAX_ERROR;
    }     
@@ -509,7 +518,7 @@ int expression(bool logic, tStack *stackTop)
    if ((result = processing_expression(logic))) { return result; }
    cisteni();
 
-/*
+
    if (vysExp->type == TYPE_INT)
       printf("VYSLEDEK typu INT %d \n",top->value.intValue);
    if (vysExp->type == TYPE_DOUBLE)
@@ -521,7 +530,7 @@ int expression(bool logic, tStack *stackTop)
    }
    else
       debug("Chyba typu string\n");
-      */
+      
    debug("Expr: vse ok %d\n" , result);
    return result;     
 }
@@ -574,39 +583,50 @@ int processing_expression(bool logic)
    int result;
    tExpStack *pom;
 
-   if (NULL == (pom = nearestTerminal())) return SYNTAX_ERROR; 
+   if (NULL == (pom = nearestTerminal())) {  return SYNTAX_ERROR; } 
 
 
    for (int i = 0; (!end) && (i < VELIKOST_TABULKY); i++)
    {
       if (giveTok(&token) == PrecedencniTabulka[0][i])
+      {
          col_index = i;
+      }
+
 
       if (pom->data == PrecedencniTabulka[i][0])
+      {
          row_index = i;
+      }
 
       if (row_index && col_index) end = true;
       
-      if (i == (VELIKOST_TABULKY-1) && !end) return SYNTAX_ERROR;
+      if (i == (VELIKOST_TABULKY-1) && !end) { return SYNTAX_ERROR; }
    }
+
+  //vypis_zasobniku();
    
-   if ((col_index == 16) && (row_index == 17) && ('$' == zasobnik->data)) return SYNTAX_ERROR;
+   if ((col_index == 16) && (row_index == 17) && ('$' == zasobnik->data)) { return SYNTAX_ERROR; }
    
    switch (PrecedencniTabulka[row_index][col_index])
    {
       case '<': 
       {
+
          if ((result = push(':', PUSH_STOP, pom))) { return result; }
          if ((result = push(giveTok(&token), PUSH_NEW, NULL))) { return result; }
          if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; } 
+
          if ((result = processing_expression(logic))) { return result; }
          break;
       }
       case '=': 
          if((result = getToken(&token))) { debug("%s\n", "ERROR - v LEX"); return result; }
+
       case '>': 
       {
-         if ((result = pop())) { return result; }
+
+         if ((result = pop(logic))) { return result; }
          if ((result = processing_expression(logic))) { return result; }
          break;
       }
