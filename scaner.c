@@ -4,7 +4,7 @@
 #include "scaner.h"
 #include "ial.h"
 #include "ifj.h" 
-#include "tokenFifo.h"
+#include "tokenfifo.h"
 
 // To co muze token vratit
 

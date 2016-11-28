@@ -3,9 +3,9 @@
 #include "ial.h"
 #include "scaner.h"
 #include "debug.h"
-#include "ifj16Func.h"
+#include "ifj16func.h"
 #include "expr.h"
-#include "tokenFifo.h"
+#include "tokenfifo.h"
 #include <string.h>
 
 tToken token;

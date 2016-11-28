@@ -111,6 +111,25 @@ int getVal(tValueStack **val){
          if (!var->init) { debug("Neinicializovana promenna ve vyrazu\n"); return UNINITIALIZED_ERROR; } // asi jina chyba
          return SUCCESS;
       }
+      /*
+      case FULL_IDENTIFIER:
+      {
+         char *className;
+         char *id;
+         id = parseFullId(&className, token.id);
+         if (!id) return INTERNAL_ERROR;
+         tList *data = tsRead(globalTS, className);
+         if (!data) { debug("Nedeklarovana funkce/promenna\n"); return SEM_ERROR; }
+         tClass *class = data->dataPtr;
+         data = tsRead(class->symbolTable, id);
+         if (!data) { debug("Nedeklarovana funkce/promenna\n"); return SEM_ERROR; }
+         if (data->func) { debug("funkce ve vyrazu\n"); return SEM_ERROR; } 
+         tVar *var = data->dataPtr;
+         if (!var->init) { debug("Neinicializovana promenna\n"); return UNINITIALIZED_ERROR; } // asi jina chyba
+
+      }
+      */
+
       case MINUS:
       case MULTIPLIER:
       case DIVISION:
@@ -518,7 +537,7 @@ int expression(bool logic, tStack *stackTop)
    if ((result = processing_expression(logic))) { return result; }
    cisteni();
 
-
+/*
    if (vysExp->type == TYPE_INT)
       printf("VYSLEDEK typu INT %d \n",top->value.intValue);
    if (vysExp->type == TYPE_DOUBLE)
@@ -530,7 +549,7 @@ int expression(bool logic, tStack *stackTop)
    }
    else
       debug("Chyba typu string\n");
-      
+      */
    debug("Expr: vse ok %d\n" , result);
    return result;     
 }
