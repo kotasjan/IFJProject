@@ -1,6 +1,6 @@
 #!/bin/sh
 
-cd Testy/
+cd tests/
 
 FILES=`find . -type f -name \*` 
 
@@ -12,7 +12,7 @@ RED=$(tput setaf 1)
 
 for path in $FILES; do
    path=`echo $path` 
-   path=`echo $path | sed 's/^.\//Test\/Testy\//g'` 
+   path=`echo $path | sed 's/^.\//testy\/tests\//g'` 
    RET_CODE=`echo $path | grep -o -E '[0-9]+' | head -1 | sed -e 's/^\+//'`
    $r./prekladac $path >/dev/null 2>&1
    ret=$?

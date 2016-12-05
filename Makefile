@@ -52,3 +52,6 @@ tokenfifo.o: tokenfifo.c tokenfifo.h ial.h debug.h scaner.h
 clean:
 	$(RM) *.o
 	$(RM) $(TARGET)
+
+test:
+	./test.sh
