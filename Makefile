@@ -54,4 +54,5 @@ clean:
 	$(RM) $(TARGET)
 
 test:
+	chmod +x test.sh
 	./test.sh
