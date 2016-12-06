@@ -23,12 +23,7 @@ for path in $FILES; do
    fi
 done
 
-printf "-------------"
 printf "\nCizi testy:\n\n"
 
 chmod +x testy/testy_cizi/ifj_tester-master/ifj_test.py
-python3 testy/testy_cizi/ifj_tester-master/ifj_test.py ../../../prekladac
-
-
-
- 
+python3 testy/testy_cizi/ifj_tester-master/ifj_test.py prekladac
