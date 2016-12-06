@@ -26,7 +26,8 @@ done
 printf "-------------"
 printf "\nCizi testy:\n\n"
 
-./testy/testy_cizi/ifj_tester-master/ifj_test.py ../..
+chmod +x testy/testy_cizi/ifj_tester-master/ifj_test.py
+python3 testy/testy_cizi/ifj_tester-master/ifj_test.py ../../../prekladac
 
 
 
