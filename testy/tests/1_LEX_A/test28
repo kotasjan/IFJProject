@@ -1,0 +1,8 @@
+class Main {
+	static double a = 2;
+
+	static void run(){
+		String za = "ahoj";
+	}
+}
+/*

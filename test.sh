@@ -23,6 +23,11 @@ for path in $FILES; do
    fi
 done
 
+printf "-------------"
+printf "\nCizi testy:\n\n"
+
+./testy/testy_cizi/ifj_tester-master/ifj_test.py ../..
+
 
 
  
