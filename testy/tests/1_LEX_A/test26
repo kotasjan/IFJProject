@@ -2,6 +2,6 @@ class Main {
 	static double a = 5-e2;
 
 	static void run(){
-		String za = "ahoj";
+		String za = "ahoj\878787";
 	}
 }

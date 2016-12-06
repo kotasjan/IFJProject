@@ -2,7 +2,7 @@ class Main {
 	static double a = 2;
 
 	static void run(){
-		String za = "ahoj";
+		String za = "ahoj"ň;
 	}
 }
-*/
+*/			// toto je SA error

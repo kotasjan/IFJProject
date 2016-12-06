@@ -3,5 +3,6 @@ class Main {
 
 	static void run(){
 		String za = "ahoj";
+		int x = 545645645646545454564;
 	}
 }

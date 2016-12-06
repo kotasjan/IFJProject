@@ -63,12 +63,16 @@ enum{
 	IS_DEFAULT = 0,		// vychozi stav KA
 	IS_SIMPLE_ID,		// [a-z] [A-Z] [0-9] _ $
 	IS_SIMPLE_NUMBER,	// [0-9]
-	IS_FULL_ID,
+	IS_FULL_ID,			// x.a
+	IS_PRE_FULL_ID,		// x.
 	IS_DECIMAL_NUMBER,	// [0-9].[0-9]
 	IS_EXP_NUMBER,		// [0-9]eE[0-9]
+	IS_PRE_DECIMAL_NUMBER,	// [0-9].
 	IS_EXP_AFTER_SIGN_NUMBER,	// [0-9]eE+-[0-9]
+	IS_PRE_EXP_AFTER_SIGN_NUMBER,	// [0-9]eE+-
 	IS_DEC_EXP_NUMBER,	// [0-9].[0-9]eE[0-9]
 	IS_DEC_EXP_AFTER_SIGN_NUMBER,	// [0-9].[0-9]eE+-[0-9]
+	IS_PRE_DEC_EXP_AFTER_SIGN_NUMBER,	// [0-9].[0-9]eE+-
 	IS_MULTIPLICATION,	// * */
 	IS_LESS,			// < <=
 	IS_GREATER,			// > >=

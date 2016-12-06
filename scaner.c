@@ -232,7 +232,7 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
          break;
          
          case IS_SINGLE_COMMENT:
-            if (c == EOF) { free(data->id); data->type = END_OF_FILE; return SUCCESS; }            // nebo LEX_ERROR ? viz soubory z wiki
+            if (c == EOF) { free(data->id); data->type = END_OF_FILE; return LEX_ERROR; }            // LEX_ERROR viz forum
             else if (c == '\n') state = IS_DEFAULT;
             else
             {
@@ -241,7 +241,7 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
          break;
          
          case IS_FULL_COMMENT:
-            if (c == EOF) { free(data->id); data->type = END_OF_FILE; return LEX_ERROR; }          // nebo LEX_ERROR ? viz soubory z wiki
+            if (c == EOF) { free(data->id); data->type = END_OF_FILE; return LEX_ERROR; }          // LEX_ERROR viz forum
             else if (c == '*') state = IS_FULL_COMMENT_END;
             else
             {
@@ -250,7 +250,7 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
          break;
          
          case IS_FULL_COMMENT_END:
-            if (c == EOF) { free(data->id); data->type = END_OF_FILE; return LEX_ERROR; }             // nebo LEX_ERROR ? viz soubory z wiki
+            if (c == EOF) { free(data->id); data->type = END_OF_FILE; return LEX_ERROR; }             // LEX_ERROR viz forum
             else if (c == '/') state = IS_DEFAULT;
             else
             {
@@ -351,8 +351,8 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
          break;
          
          case IS_SIMPLE_ID:
-            if (c == EOF) { free(data->id); return LEX_ERROR; }
-            else if (isdigit(c) || isalpha(c) || c == '_' || c == '$')
+           // if (c == EOF) { free(data->id); return LEX_ERROR; }						
+            if (isdigit(c) || isalpha(c) || c == '_' || c == '$')
             {
                if (checkSize(data) == -1)
                {
@@ -377,7 +377,7 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                (data->length)++;
                (data->id)[data->length] = '\0';
             
-               state = IS_FULL_ID;              
+               state = IS_PRE_FULL_ID;              
             }
             else
             {
@@ -411,15 +411,32 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
             }
          break;
 
-         case IS_FULL_ID:
+         case IS_PRE_FULL_ID:
             if (c == EOF) return LEX_ERROR;
-            else if (isdigit(c) || isalpha(c) || c == '_' || c == '$')
+            else if (isalpha(c) || c == '_' || c == '$')
             {
-               if (isdigit(c) && ((data->id)[data->length-1] == '.'))
+               if (checkSize(data) == -1)
                {
-                  free(data->id);
-                  return LEX_ERROR;
+                  return INTERNAL_ERROR;
                }
+               
+               (data->id)[data->length] = c;
+               (data->length)++;
+               (data->id)[data->length] = '\0';
+            
+               state = IS_FULL_ID;              
+            }
+            else
+            {
+               free(data->id);
+               return LEX_ERROR;
+            }
+         break;
+		 
+         case IS_FULL_ID:
+            //if (c == EOF) return LEX_ERROR;
+            if (isdigit(c) || isalpha(c) || c == '_' || c == '$')
+            {
                if (checkSize(data) == -1)
                {
                   return INTERNAL_ERROR;
@@ -452,16 +469,17 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                (data->id)[data->length] = c;
                (data->length)++;
                (data->id)[data->length] = '\0';
+			   
+			   if ((data->length) > 10)					// rozsah C-int -> coz znamena max ~ 2 000 000 000 (10 cislic)
+			   {
+                  free(data->id);
+                  return LEX_ERROR;				   
+			   }
                
                if (isdigit(c)) state = IS_SIMPLE_NUMBER;
-               else if (c == '.') state = IS_DECIMAL_NUMBER;
+               else if (c == '.') state = IS_PRE_DECIMAL_NUMBER;
                else if (c == 'e' || c == 'E') state = IS_EXP_NUMBER;
-            }  
-            else if (isalpha(c))
-            {
-               free(data->id);
-               return LEX_ERROR;
-            }     
+            }      
             else
             {
                ungetc(c, file);
@@ -470,6 +488,28 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
             }
          break;
          
+         case IS_PRE_DECIMAL_NUMBER:
+            if (isdigit(c))
+            {
+               if (checkSize(data) == -1)
+               {
+                  free(data->id);
+                  return INTERNAL_ERROR;
+               }
+               
+               (data->id)[data->length] = c;
+               (data->length)++;
+               (data->id)[data->length] = '\0';
+               
+               state = IS_DECIMAL_NUMBER;
+            }      
+            else
+            {
+                  free(data->id);
+                  return LEX_ERROR;           
+            }
+         break;
+		 
          case IS_DECIMAL_NUMBER:
             if (isdigit(c) || c == 'e' || c == 'E')
             {
@@ -485,12 +525,7 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                
                if (isdigit(c)) state = IS_DECIMAL_NUMBER;
                else if (c == 'e' || c == 'E') state = IS_DEC_EXP_NUMBER;
-            }  
-            else if (isalpha(c))
-            {
-               free(data->id);
-               return LEX_ERROR;
-            }     
+            }       
             else
             {
                ungetc(c, file);
@@ -512,18 +547,13 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                (data->length)++;
                (data->id)[data->length] = '\0';
                
-               state = IS_EXP_AFTER_SIGN_NUMBER;
-            }
-            else if (isalpha(c))
-            {
-               free(data->id);
-               return LEX_ERROR;
+               if (isdigit(c)) state = IS_EXP_AFTER_SIGN_NUMBER;
+			   else state = IS_PRE_EXP_AFTER_SIGN_NUMBER;
             }           
             else
             {
-               ungetc(c, file);
-               data->type = LIT_DOUBLE;
-               return SUCCESS;            
+                  free(data->id);
+                  return LEX_ERROR;         
             }
          break;
    
@@ -540,21 +570,38 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                (data->length)++;
                (data->id)[data->length] = '\0';
                
-               state = IS_DEC_EXP_AFTER_SIGN_NUMBER;
-            }
-            else if (isalpha(c))
-            {
-               free(data->id);
-               return LEX_ERROR;
-            }        
+               if (isdigit(c)) state = IS_DEC_EXP_AFTER_SIGN_NUMBER;
+			   else state = IS_PRE_DEC_EXP_AFTER_SIGN_NUMBER;
+            }       
             else
             {
-               ungetc(c, file);
-               data->type = LIT_DOUBLE;
-               return SUCCESS;            
+                  free(data->id);
+                  return LEX_ERROR;          
             }
          break;
          
+         case IS_PRE_DEC_EXP_AFTER_SIGN_NUMBER:
+            if (isdigit(c))
+            {
+               if (checkSize(data) == -1)
+               {
+                  free(data->id);
+                  return INTERNAL_ERROR;
+               }
+               
+               (data->id)[data->length] = c;
+               (data->length)++;
+               (data->id)[data->length] = '\0';
+               
+               state = IS_DEC_EXP_AFTER_SIGN_NUMBER;
+            }  
+            else
+            {
+                  free(data->id);
+                  return LEX_ERROR;           
+            }
+         break;
+		 
          case IS_DEC_EXP_AFTER_SIGN_NUMBER:
             if (isdigit(c))
             {
@@ -570,11 +617,6 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                
                state = IS_DEC_EXP_AFTER_SIGN_NUMBER;
             }  
-            else if (c == '-' || c == '+' || isalpha(c))
-            {
-               free(data->id);
-               return LEX_ERROR;
-            }
             else
             {
                ungetc(c, file);
@@ -583,6 +625,28 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
             }
          break;
          
+         case IS_PRE_EXP_AFTER_SIGN_NUMBER:
+            if (isdigit(c))
+            {
+               if (checkSize(data) == -1)
+               {
+                  free(data->id);
+                  return INTERNAL_ERROR;
+               }
+               
+               (data->id)[data->length] = c;
+               (data->length)++;
+               (data->id)[data->length] = '\0';
+               
+               state = IS_EXP_AFTER_SIGN_NUMBER;
+            }        
+            else
+            {
+                  free(data->id);
+                  return LEX_ERROR;        
+            }
+         break;
+		 
          case IS_EXP_AFTER_SIGN_NUMBER:
             if (isdigit(c))
             {
@@ -597,11 +661,6 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                (data->id)[data->length] = '\0';
                
                state = IS_EXP_AFTER_SIGN_NUMBER;
-            }  
-            else if (isalpha(c))
-            {
-               free(data->id);
-               return LEX_ERROR;
             }        
             else
             {
