@@ -25,3 +25,15 @@ ial.c:
 - ve funkci printDouble() overit vypis cisla a pocet desetinnych mist u vypisu s %g
 ------------------------------------------------------------------------------------
 ************************************************************************************
+
+************************************************************************************
+-------------------------------------07.12.2016-------------------------------------
+Konečný automat a scanner.c:
+- IS_STRING_LIT_ESCAPE_OCT_3: v podmínce upravit na if(octave > 255)
+- upravit oct cases podle KA (odstranit jeden case IS_STRING_LIT_ESCAPE_OCT_3)
+  + upravit nazvy podle KA
+- prázdný řetězec musí ukazovat na nulu (\0 - konec řetězce)
+- jednořádkový koment je ukončen buď EOL nebo EOF
+- v IS_PRE_FULL_ID je zbytečný if(c==EOF) + neuvolňuje se tam data->id
+------------------------------------------------------------------------------------
+************************************************************************************
