@@ -1,20 +1,25 @@
 /* Program 2: Vypocet faktorialu (rekurzivne) */
-class Main
-{
-	static void run()
-	{
-		int a = 4; int vysl;
-		if (a < 0) {
-			ifj16.print("Faktorial nelze spocitat!\n");
-		}else {
+class Main{
+	static void run(){
+		int a = 5; int vysl;
+
+		if (a >= 0) {
 			vysl = factorial(a);
-			ifj16.print(vysl);
+		}else{
+			
+		}
+
+		if(vysl == 120){
+			ifj16.print("OK");
+		}else{
+			ifj16.print("NOT OK");
 		}
 	}
-	static int factorial(int n)
-	{
+
+	static int factorial(int n){
 		int temp_result;
 		int decremented_n = n - 1;
+
 		if (n < 2) {
 			return 1;
 		}else{
