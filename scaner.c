@@ -58,7 +58,7 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                         // pokud se nacte cislo tak se ukazatel na nactene znaky vrati v void *result a ty se pak dekoduji pomoci atoi nebo strtod
                         
                         // Klic do HT by mel byt ukazatel, jednak aby se pak mohlo volat free na pamet kterou alokuju a taky a taky protoze klic musi mit jasnou velikost
-   data->id = malloc(24);
+   data->id = calloc(1,24);
    data->length = 0;
    data->allocSize = 24;   
    
@@ -84,17 +84,17 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
             else if (c == ',') { free(data->id); data->type = COMMA;                return SUCCESS; }
             else if (c == ';') { free(data->id); data->type = SEMICOLON;            return SUCCESS; }
             else if (c == '*') { free(data->id); data->type = MULTIPLIER;           return SUCCESS; }    // */ musi predchazet /*, proto pri IS_DEFAULT jedine return MULTIPLIER
-            
+            else if (c == '+') { free(data->id); data->type = PLUS;					return SUCCESS; }
+            else if (c == '-') { free(data->id); data->type = MINUS;                return SUCCESS; }
+			
             else if (c == '<') state = IS_LESS;
             else if (c == '>') state = IS_GREATER;
             else if (c == '!') state = IS_EXCLAMATION;
             else if (c == '=') state = IS_ASSIGNMENT;
             else if (c == '/') state = IS_SLASH;   
             else if (c == '"') state = IS_STRING_LITERAL;               
-            else if (c == '+') state = IS_PLUS;    
-            else if (c == '-') state = IS_MINUS;
             else if (isspace(c)) state = IS_DEFAULT;
-
+			      
             else if (isalpha(c) || c == '_' || c == '$')
             {
                if (checkSize(data) == -1)
@@ -209,7 +209,7 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
             }
          break;
          
-         case IS_PLUS:
+         /*case IS_PLUS:															// SMAZAT 
             if (c == '+') { data->type = INC; return SUCCESS; }
             else
             {
@@ -220,7 +220,7 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
             }
          break;
 
-         case IS_MINUS:
+         case IS_MINUS:															// SMAZAT 
             if (c == '-') { data->type = DEC; return SUCCESS; }
             else
             {
@@ -229,10 +229,10 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                data->type = MINUS;
                return SUCCESS;
             }
-         break;
+         break;*/
          
          case IS_SINGLE_COMMENT:
-            if (c == EOF) { free(data->id); data->type = END_OF_FILE; return LEX_ERROR; }            // LEX_ERROR viz forum
+            if (c == EOF) { free(data->id); data->type = END_OF_FILE; return SUCCESS; }            
             else if (c == '\n') state = IS_DEFAULT;
             else
             {
@@ -280,8 +280,16 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
             }
             else if (isdigit(c))
             {
-               ungetc(c, file);
-               state = IS_STRING_LIT_ESCAPE_OCT_1;
+				if (c == '0' || c == '1' || c == '2' || c == '3') 
+				{
+				   octave += (c-'0') * 64;
+				   state = IS_STRING_LIT_ESCAPE_OCT_1;                
+				}
+				else
+				{
+				   free(data->id);
+				   return LEX_ERROR;
+				}
             }
             else
             {
@@ -290,13 +298,13 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
             }
          break;
          
-         
+               
          case IS_STRING_LIT_ESCAPE_OCT_1:
             if (c == EOF) { free(data->id); return LEX_ERROR; }
-
-            if (c == '0' || c == '1' || c == '2' || c == '3') 
+            
+            if (isdigit(c) && c != '9' && c != '8') 
             {
-               octave += (c-'0') * 64;
+               octave += (c-'0') * 8;
                state = IS_STRING_LIT_ESCAPE_OCT_2;                
             }
             else
@@ -305,30 +313,15 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
                return LEX_ERROR;
             }
          break;
-               
-         case IS_STRING_LIT_ESCAPE_OCT_2:
-            if (c == EOF) { free(data->id); return LEX_ERROR; }
-            
-            if (isdigit(c) && c != '9' && c != '8') 
-            {
-               octave += (c-'0') * 8;
-               state = IS_STRING_LIT_ESCAPE_OCT_3;                
-            }
-            else
-            {
-               free(data->id);
-               return LEX_ERROR;
-            }
-         break;
 
-         case IS_STRING_LIT_ESCAPE_OCT_3:
+         case IS_STRING_LIT_ESCAPE_OCT_2:
             if (c == EOF) { free(data->id); return LEX_ERROR; }
             
             if (isdigit(c) && c != '9' && c != '8') 
             {
                octave += (c-'0');
                
-               if (octave > 256 ) { free(data->id); return LEX_ERROR; }
+               if (octave > 255 ) { free(data->id); return LEX_ERROR; }
                
                if (checkSize(data) == -1)
                {
@@ -412,8 +405,8 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
          break;
 
          case IS_PRE_FULL_ID:
-            if (c == EOF) return LEX_ERROR;
-            else if (isalpha(c) || c == '_' || c == '$')
+           // if (c == EOF) return LEX_ERROR;
+            if (isalpha(c) || c == '_' || c == '$')
             {
                if (checkSize(data) == -1)
                {

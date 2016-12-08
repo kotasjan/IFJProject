@@ -86,11 +86,11 @@ enum{
 	IS_STRING_LIT_ESCAPE,	// " ... \" \n \\ \t
 	IS_STRING_LIT_ESCAPE_OCT_1,	// \[0xx-3xx]			celkove [001-377]
 	IS_STRING_LIT_ESCAPE_OCT_2, // \[x0x-x7x]
-	IS_STRING_LIT_ESCAPE_OCT_3, // \[xx1-xx7]
+	//IS_STRING_LIT_ESCAPE_OCT_3, // \[xx1-xx7]
 	//IS_AND,	// rozsireni &&
 	//IS_OR,	// rozsireni ||
-	IS_PLUS,			// + (++ rozsireni)
-	IS_MINUS,			// - (-- rozsireni)
+	//IS_PLUS,			// + (++ rozsireni)
+	//IS_MINUS,			// - (-- rozsireni)
 } inner_state;
 
 

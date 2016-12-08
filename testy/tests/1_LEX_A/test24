@@ -2,7 +2,7 @@ class Main {
 	static double a = 5+E2;
 
 	static void run(){
-		String za = "ahoj";
+		String za = "ahoj\456";
 	}
 }
 //
