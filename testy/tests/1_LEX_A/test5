@@ -1,5 +1,4 @@
 class Main {
-	static int a = 5;
 
 	static void run(){
 		String z'a = "ahoj";

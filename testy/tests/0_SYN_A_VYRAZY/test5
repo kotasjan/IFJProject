@@ -2,10 +2,10 @@ class Main {
 	static int a = 5;
 
 	static void run(){
-		if(Main.a > 2 * (1) / 0.5){
-			ifj16.print("toto se provede");
-		}else{
+		if(Main.a < 2 * (1) / 0.5){
 			ifj16.print("toto se neprovede");
+		}else{
+			ifj16.print("toto se provede");
 		}
 	}
 }

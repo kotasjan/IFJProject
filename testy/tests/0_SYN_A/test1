@@ -3,8 +3,8 @@ class Main {
 
 	static void run(){
 		if(Main.a > 1){
-			if(Main.a > 1){
-				if(Main.a > 1){
+			if(Main.a < 6){
+				if(Main.a > 5){
 					
 				}else{
 

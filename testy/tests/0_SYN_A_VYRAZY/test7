@@ -2,7 +2,10 @@ class Main {
 	static String str = "Ahoj svete";
 
 	static void run(){
-		if(ifj16.length(str) + ifj16.length(str) > 5){
+		int a = ifj16.length(str);
+		int b = ifj16.length(str);
+		
+		if(a + b > 5){
 			ifj16.print("toto se provede");
 		}else{
 			ifj16.print("toto se neprovede");

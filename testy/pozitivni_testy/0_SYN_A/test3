@@ -1,0 +1,15 @@
+class Main{
+	static void run(){
+		int a = 0;
+		
+		while(a < 10){
+			a = a + 1;
+		}
+
+		if(a == 10){
+			ifj16.print("OK");
+		}else{
+			ifj16.print("NOT OK");
+		}
+	}
+}

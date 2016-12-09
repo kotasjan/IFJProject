@@ -1,0 +1,9 @@
+class Main{
+	static void run(){
+		if(1 < 2){
+			ifj16.print("OK");
+		}else{
+			ifj16.print("NOT OK");
+		}
+	}
+}

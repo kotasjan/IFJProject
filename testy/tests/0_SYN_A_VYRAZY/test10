@@ -2,8 +2,9 @@ class Main {
 	static String str = "Ahoj svete";
 
 	static void run(){
-		if( "eestv" == ifj16.sort("svete")){
-			ifj16.print("toto se nprovede");
+		String s = ifj16.sort("svete");
+		if("eestv" == s){
+			ifj16.print("toto se provede");
 		}else{
 			ifj16.print("toto se neprovede");
 		}

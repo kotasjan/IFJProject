@@ -1,5 +1,5 @@
 class Main {
-	static double a = 5-E2;
+	static double a = 5E-2;
 
 	static void run(){
 		String za = "ahoj";

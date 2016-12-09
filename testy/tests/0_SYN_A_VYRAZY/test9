@@ -2,7 +2,8 @@ class Main {
 	static String str = "Ahoj svete";
 
 	static void run(){
-		if(ifj16.find(str, "svete") != -1){
+		int a = ifj16.find(str, "svete");
+		if(a != -1){
 			ifj16.print("toto se provede");
 		}else{
 			ifj16.print("toto se neprovede");

@@ -1,6 +1,5 @@
 class Main {
-	static double a = 2;
-	í;
+
 	static void run(){
 		String za = "ahoj
 		chyba v LA";

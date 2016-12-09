@@ -3,7 +3,8 @@ class Main {
 
 	static void run(){
 	Main.a = 10;
-		if(Pomocna.ahoj + 5 >= vratInt(Main.a)){
+	int b = vratInt(Main.a);
+		if(Pomocna.ahoj + 5 >= b){
 			ifj16.print("Toto se provede");
 		}else{
 			ifj16.print("Toto se neprovede");

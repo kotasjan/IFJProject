@@ -1,8 +1,5 @@
-/* Program 2: Vypocet faktorialu (rekurzivne) */
-class Main
-{
-	static void run()
-	{
+class Main {
+	static void run(){
 		int a = 4; int vysl;
 		if (a < 0) {
 			ifj16.print("Faktorial nelze spocitat!\n");
@@ -11,8 +8,7 @@ class Main
 			ifj16.print(vysl);
 		}
 	}
-	static int factorial(int n)
-	{
+	static int factorial(int n){
 		int temp_result;
 		int decremented_n = n - 1;
 		if (n < 2) {

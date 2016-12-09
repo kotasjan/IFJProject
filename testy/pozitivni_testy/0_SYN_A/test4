@@ -1,0 +1,32 @@
+class Main{
+	static void run(){
+		int a = 0;
+
+		if(a < 10){
+			if(a == 0){
+				a = (a + 1) * 30;
+				if(a > 10){
+					if(a <= 30){
+						if(a >= 30){
+							if(a != 10){
+								ifj16.print("OK");
+							}else{
+								ifj16.print("NOT OK");
+							}
+						}else{
+							ifj16.print("NOT OK");
+						}
+					}else{
+						ifj16.print("NOT OK");
+					}
+				}else{
+					ifj16.print("NOT OK");
+				}
+			}else{
+				ifj16.print("NOT OK");
+			}
+		}else{
+			ifj16.print("NOT OK");
+		}
+	}
+}

@@ -2,6 +2,6 @@ class Main {
 	static double a = 5.5eE52;
 
 	static void run(){
-		String za = "ahoj";
+
 	}
 }

@@ -2,7 +2,7 @@ class Main {
 	static int a = 5;
 
 	static void run(){
-		if(Main.a > -0.54E-25){
+		if(Main.a <= 5.54E1){
 			ifj16.print("toto se provede");
 		}else{
 			ifj16.print("toto se neprovede");
