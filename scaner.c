@@ -317,11 +317,11 @@ errCode getToken(tToken *data){           // je treba FILE * file parametr nebo 
          case IS_STRING_LIT_ESCAPE_OCT_2:
             if (c == EOF) { free(data->id); return LEX_ERROR; }
             
-            if (isdigit(c) && c != '9' && c != '8') 
+            if (isdigit(c) && c != '9' && c != '8' && c != '0') 
             {
                octave += (c-'0');
                
-               if (octave > 255 ) { free(data->id); return LEX_ERROR; }
+               if (octave > 255 || octave == 0 ) { free(data->id); return LEX_ERROR; }
                
                if (checkSize(data) == -1)
                {
