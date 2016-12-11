@@ -24,6 +24,7 @@ void printErrCode(int code)
 void printFunction(tFunc *func)
 {
    debugFunc("Function name: %s\n", func->name);
+   debugFunc("Function class name: %s\n", func->className);
    debugFunc("Function retType: %s\n", func->retType == TYPE_INT ? "int" : func->retType == TYPE_DOUBLE ? "double" : func->retType == TYPE_STRING ? "String" : "void" );
    debugFunc("Function paramCnt: %u\n", func->paramCnt);
    tFuncParam *tmp = func->param;

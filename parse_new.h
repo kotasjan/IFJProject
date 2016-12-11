@@ -19,3 +19,9 @@ int createFunc(tFunc **func, char *id, tType typ);
 int addFuncParam(tFunc *func, tType typ);
 tList *lookVarStack(tFunc *func);
 tList *tsCheck(table *TS);
+
+struct toka
+{
+   tToken tok;
+   struct toka *next;
+};

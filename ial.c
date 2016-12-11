@@ -58,7 +58,7 @@ int readInt() {
 		if (!isdigit(str[i])) 
 		{ 
 			free(str);
-			return -2;		// neodpovida zadani - pouze cislice
+			exit(7);		// neodpovida zadani - pouze cislice
 		}
 	}
 	
@@ -87,7 +87,7 @@ double readDouble() {
 		else
 		{
 			free(str);
-			return -2;	
+			exit(7);	
 		}
 			
 	}
@@ -95,7 +95,7 @@ double readDouble() {
 	if (str[0] == '+' || str[0] == '-')
 	{
 		free(str);
-		return -2;							// strtod to bere, ale zadani to nepovoluje
+		exit(7);							// strtod to bere, ale zadani to nepovoluje
 	}
 	
 	char* error;
@@ -104,7 +104,7 @@ double readDouble() {
 	if (error[0] != '\0')
 	{
 		free(str);
-		return -2;
+		exit(7);
 	}
 	free(str);
 	return x;
@@ -116,7 +116,16 @@ String readString()
 	if (str == NULL) return NULL;
 	
 	fgets (str, 8192, stdin);			// fgets - prida na konec napr \n ?
-
+  int i = 0;
+  while (i < 8192)
+  {
+    if (str[i] == '\n')
+    {
+      str[i] = '\0';
+      break;
+    }
+    i++;
+  }
 	return str;
 }
 
@@ -321,233 +330,10 @@ void* tsRead ( table* TS, char *key ) {
    }
 }
 
-/*
-#include "debug.h"
-void printTSa(table *TS)
-{
-   // 100 = TABLE_SIZE
-   tList *item;
-   for(int i = 0; i < 100; i++)
-   {
-      if((*TS)[i])
-      {
-         item = (*TS)[i];
-         while(item)
-         {
-            printf("CLASS: %s\n", (*TS)[i]->key);
-            tClass *trida = item->classData;
-            printf("tttt %s\n",trida->name);
-            table *class = trida->symbolTable;
-            for(int j = 0; j < 100; j++)
-            {
 
-               if((*class)[j])
-               {
-                  if((*class)[j]->func){
-                     printf("Function: %s\n", (*class)[j]->key);
-                     //printFunction((*class)[j]->classData);
-                  }
-                  else
-                  {
-                     tVar *var = (*class)[j]->classData;
-                     debugVar("Variable Name: %s\n", var->id);
-                     debugVar("Variable type: %s\n", var->type == 300 ? "int" : var->type == 301 ? "double" : var->type == 302 ? "string" : "void" );
-                     debugVar("Variable init: %s\n", var->init ? "true" : "false");
-                  }
 
-               }
-            }
-            item = item->next;
-         }
 
-      }
 
-   }
 
-}
 
 
-void test()
-{
-    table TS;
-    tsInit(&TS);
-    int result;
-
-    tClass *class = calloc(1, sizeof(tClass));
-    class->name = "ssss";
-    tsInsert(&TS, class->name, class);
-    
-
-    printf("%d\n",sizeof(tClass) );
-
-
-   tFunc *func = calloc(1, sizeof(tFunc));
-   if(!func) { return 1; }
-   func->name = "substr";
-   func->retType = TYPE_STRING;
-
-   tFuncParam *ptr;
-   tFuncParam *param = calloc(1, sizeof(tFuncParam));
-   if(!param) { return 1; }
-
-   ptr = param;
-   func->paramCnt++;
-   func->param = param;
-   func->param->id = "s";
-   func->param->type = TYPE_STRING;
-
-   param = calloc(1, sizeof(tFuncParam));
-   if(!param) { return 1; }
-
-   ptr->nextParam = param;
-   ptr = param;
-
-   func->paramCnt++;
-   param->id = "i";
-   param->type = TYPE_INT;
-
-   param = calloc(1, sizeof(tFuncParam));
-   if(!param) { return 1; }
-
-   ptr->nextParam = param;
-   ptr = param;
-
-   func->paramCnt++;
-   param->id = "n";
-   param->type = TYPE_INT;
-
-   result = tsInsert (class->symbolTable, func->name, func);
-   if(result == 1) return 1;
-   else if(result == 2) { debug("%s %s\n", "Redifined func", ""); return 1; }
-   else debug("%s %s %s\n", "func", func->name, "added to ST");
-
-   tList *data = tsRead(class->symbolTable, func->name);
-   if(data)
-      data->func = true;
-    //  printFunction(func);
-
-
-   tVar *var = calloc(1, sizeof(tVar));
-         if(!var) { return 1; }
-         var->id = "promena";
-         var->type = TYPE_STRING;
-         var->init = true;
-
-         result = tsInsert (class->symbolTable, var->id,var);
-         if(result == 1) return 1;
-         else if(result == 2) { debug("%s %s\n", "Redifined var", ""); return 1; }
-         else debug("%s %s %s\n", "variable", var->id, "added to ST");
-
-
-
-        tList *dataa = tsRead(class->symbolTable, var->id);
-            if(dataa)
-               dataa->func = false;
-
-   printTSa(&TS);
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-hTable *htableInit( unsigned long size ) {
-
-    hTable *table = malloc( sizeof(hTable) + size * sizeof(table->data[0]) );
-    if(!table)
-        return NULL;
-
-    table->size          = size;
-    table->hashFunction = &hashFunction;
-    table->n             = 0;
-
-    for( unsigned int i = 0; i < size; i++ )
-        table->data[i] = NULL;
-
-    return table;
-
-}
-
-unsigned int hashFunction(const char *str, unsigned htab_size)
-{
-    unsigned int h=0;
-    const unsigned char *p;
-    for(p=(const unsigned char*)str; *p!='\0'; p++)
-        h = 65599*h + *p;
-    return h % htab_size;
-}
-
-tToken * htableLookupAdd(hTable *table, const char *key)
-{
-    if( !table || !key )
-        return NULL;
-
-    unsigned int index = table->hashFunction(key, table->size);
-
-    tToken* item = table->data[index];
-
-    while(item)
-    {
-        if( !strcmp(item->key,key) ) 
-            return item;
-
-        else if( item->next ) 
-            item = item->next;
-
-        else 
-            break;
-    }
-
-
-    tToken* tmp = malloc( sizeof(tToken) );
-    if(!tmp)
-        return NULL;
-
-    tmp->key = malloc( sizeof( const char ) * ( strlen(key) + 1 ) );
-    if(!tmp->key)
-    {
-        free(tmp);
-        return NULL;
-    }
-
-    tmp->next = NULL;
-
-    strcpy(tmp->key, key);
-
-    if(item)
-        item->next = tmp;
-
-    else
-        table->data[index] = tmp;
-
-    return tmp;
-}*/

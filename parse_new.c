@@ -6,10 +6,16 @@
 #include "ifj16func.h"
 #include "expr.h"
 #include "tokenfifo.h"
+#include "instruction.h"
 #include <string.h>
 
 tToken token;
 table *globalTS = NULL;
+
+tInstructionList *blokList;
+tInstructionList *globalList = NULL;
+
+tVar **tokenParam = NULL;
 
 int parse()
 {
@@ -17,6 +23,7 @@ int parse()
    table TS;
    tsInit(&TS);
    globalTS = &TS;
+
 
    if ((result = addIFJ16(&TS))) { return result; }
 
@@ -29,12 +36,18 @@ int parse()
 
    setFileToBegin(); // nastavi soubor na zacatek, 2. pruchod
 
+   if (!(globalList = listInit())) return INTERNAL_ERROR;
+
    getToken(&token);
    if ((result = prog(&TS))) { return result; }
-   //printf("ok\n");
+   ////printf("ok\n");
 
-  // if ((result = semStart())) { printf("rtt"); return result; }
-
+  // if ((result = semStart())) { //printf("rtt"); return result; }
+   tList *data = tsRead(globalTS, "Main");
+   data = tsRead(((tClass*)(data->dataPtr))->symbolTable, "run");
+   ActualList = globalList;
+   listInsert(generateInstruction(I_SET_START,NULL,NULL,data->dataPtr));
+   interpret(globalList);
    return SUCCESS;
 }
 
@@ -95,6 +108,7 @@ int prvkyTridy(table *TS)
    {
       case STATIC:
       {
+         ActualList = globalList;
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = zavStrRov(TS))) { return result; }
          if ((result = prvkyTridy(TS))) { return result; }
@@ -154,11 +168,16 @@ int zavStrRov(table *TS)
                if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
                tFunc *func = getFunc(TS, id);
                if (!func) { return SYNTAX_ERROR; }
+               tInstructionList *act =ActualList;
+               func->List = listInit();
+               ActualList = func->List;
                if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
                if (token.type != LEFT_CURLY_BRACKET) { return SYNTAX_ERROR; }
                if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
                if ((result = veFunkci(func))) { return result; }
+
                if (token.type != RIGHT_CURLY_BRACKET) { return SYNTAX_ERROR; }
+               ActualList = act;
                if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
                return result;
             }
@@ -187,6 +206,12 @@ int zavStrRov(table *TS)
                      if ((result = expression(false, &stack))) {  return result; } 
                      if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                      if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     tList *data = tsRead(TS, id);
+                     if (!data) return SEM_ERROR;
+                     if (data->func) return SEM_ERROR;
+                     tVar *var = data->dataPtr;
+
+                     listInsert(generateInstruction(I_ASSIGNMENT,vysExp,NULL,var));
                      
                   }
                }
@@ -196,6 +221,11 @@ int zavStrRov(table *TS)
                   if ((result = expression(false, &stack))) { return result; } 
                   if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                   if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                  tList *data = tsRead(TS, id);
+                  if (!data) return SEM_ERROR;
+                  if (data->func) return SEM_ERROR;
+                  tVar *var = data->dataPtr;
+                  listInsert(generateInstruction(I_ASSIGNMENT,vysExp,NULL,var));
                }
                return result;
 
@@ -241,8 +271,10 @@ int rovnFun(tFunc *func)
 {
    int result;
 
+char *className = NULL;
    switch (token.type)
    {
+      
       case IDENTIFIER:
       case FULL_IDENTIFIER:
       {
@@ -252,15 +284,16 @@ int rovnFun(tFunc *func)
          if (token.type == IDENTIFIER)
          {
             data = lookVarStack(func);
-            if (!data) return SEM_ERROR;
+            if (!data) {  return SEM_ERROR; }
             class = data->dataPtr;
+
             // data = tsCheck(func->stack->table);
             if (!data) { debug("Nedeklarovana funkce/promenna '%s'\n", token.id); return SEM_ERROR; }
             if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+
          }
          else
          {
-            char *className;
             id = parseFullId(&className, token.id);
             if (!id) { return SYNTAX_ERROR; }
             data = tsRead(globalTS, className);
@@ -293,20 +326,29 @@ int rovnFun(tFunc *func)
                         if (tsCheckFunc(func->stack->next->table, funcName)) {  return SYNTAX_ERROR; }
                         tFunc *callFunc;
                         if (createFunc(&callFunc, funcName, var->type)) { return INTERNAL_ERROR; }
-                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-                        if ((result = parametrVolani(func, callFunc))) { return result; }
-                        if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
                         tList *data = tsRead(func->stack->next->table, funcName);
                         if (!data) { return SEM_ERROR; }
                         tFunc *funcCmp = data->dataPtr;
+                        if (!(tokenParam = calloc(funcCmp->paramCnt, sizeof(tVar*)))) return INTERNAL_ERROR;
+
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if ((result = parametrVolani(func, callFunc))) { return result; }
+                        if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+                        
+                        
                         if (compareFunction(funcCmp, callFunc)) { return SEM_TYPE_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
                         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        listInsert(generateInstruction(I_CALL,funcCmp,tokenParam,var));
+                        listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,NULL));
+                        listInsert(generateInstruction(I_FUNC_CMP,funcCmp,NULL,NULL));
                         return result;
                      }
                      else 
                      {
+                        setRetType(var->type);
+                        if (var->type == TYPE_STRING) listInsert(generateInstruction(I_SET_CONCAT,NULL,NULL,NULL));
                         if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
                         if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
@@ -314,6 +356,7 @@ int rovnFun(tFunc *func)
                         if ((result = expression(false, func->stack))) { return result; } 
                         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        listInsert(generateInstruction(I_ASSIGNMENT,vysExp,NULL,var));
                         return result;
                      }
                   }
@@ -334,19 +377,34 @@ int rovnFun(tFunc *func)
                         if (!data) { debug("Nedeklarovana funkce\n"); return SEM_ERROR; }
                         if (!data->func) { debug("funkce neni funkce\n"); return SEM_ERROR;}
                         tFunc *callFunc;
-                        if (createFunc(&callFunc, funcName, var->type)) { return INTERNAL_ERROR; }
+                        if (createFunc(&callFunc, functionName, var->type)) { return INTERNAL_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        
+                        tFunc *funcCmp = data->dataPtr;
+                        if (!(tokenParam = calloc(funcCmp->paramCnt, sizeof(tVar*)))) return INTERNAL_ERROR;
+
                         if ((result = parametrVolani(func, callFunc))) { return result; }
                         if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
-                        tFunc *funcCmp = data->dataPtr;
+                        
+                        callFunc->className = className;
+                        listInsert(generateInstruction(I_SET_CLASS,className,NULL,NULL));
                         if (compareFunction(funcCmp, callFunc)) { return SEM_TYPE_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
                         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        listInsert(generateInstruction(I_CALL,funcCmp,tokenParam,var));
+                        if ((strcmp(className, "ifj16")))
+                        {
+                           listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,NULL));
+                           listInsert(generateInstruction(I_FUNC_CMP,funcCmp,NULL,NULL));
+                        }  
+          
                         return result;
                      }
                      else
                      {
+                        setRetType(var->type);
+                        if (var->type == TYPE_STRING) listInsert(generateInstruction(I_SET_CONCAT,NULL,NULL,NULL));
                         if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
                         if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
@@ -354,35 +412,110 @@ int rovnFun(tFunc *func)
                         if ((result = expression(false, func->stack))) { return result; } 
                         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        listInsert(generateInstruction(I_ASSIGNMENT,vysExp,NULL,var));
                         return result;
                      }
                   }
                }
                else
                {
+                  setRetType(var->type);
+                  if (var->type == TYPE_STRING) listInsert(generateInstruction(I_SET_CONCAT,NULL,NULL,NULL));
                   if (checkExpr()) { return SYNTAX_ERROR; }
                   if ((result = expression(false, func->stack))) { return result; } 
                   if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                   if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                  listInsert(generateInstruction(I_ASSIGNMENT,vysExp,NULL,var));
                   return result;
                }
                
             }
             case LEFT_BRACKET:
             {
-               if (tsCheckFunc(class->symbolTable, id)) { return SEM_ERROR; }
-               tFunc *callFunc;
-               if (createFunc(&callFunc, id, TYPE_VOID)) { return INTERNAL_ERROR; }
-               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-               if ((result = parametrVolani(func, callFunc))) { return result; }
-               if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
-               tList *data = tsRead(class->symbolTable, id);
-               if (!data) { return SEM_ERROR; }
-               tFunc *funcCmp = data->dataPtr;
-               if (compareFunction(funcCmp, callFunc)) { return SEM_TYPE_ERROR; }
-               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-               if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
-               if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               tVar *var = calloc(1, sizeof(tVar));
+               if (!var) return INTERNAL_ERROR;
+               var->type = TYPE_VOID;
+               if (className && (!(strcmp(className, "ifj16"))))
+               {
+                     if((result = proccessPrint(func))) {return result;}
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+               
+               }
+               else
+               {
+                  //printf("dddd\n");
+
+                  if(className){
+                  
+                     tList *data = tsRead(globalTS, className);
+                     if (!data) { return SEM_ERROR; }
+                     if (tsCheckFunc(((tClass*)(data->dataPtr))->symbolTable, id)) { return SEM_ERROR; }
+                     data = tsRead(((tClass*)(data->dataPtr))->symbolTable, id);
+                     if (!data) { return SEM_ERROR; }
+                     tFunc *funcCmp = data->dataPtr;
+                     tFunc *callFunc;
+                     if (createFunc(&callFunc, id, TYPE_VOID)) { return INTERNAL_ERROR; }
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if (!(tokenParam = calloc(funcCmp->paramCnt, sizeof(tVar*)))) return INTERNAL_ERROR;
+                     if ((result = parametrVolani(func, callFunc))) { return result; }
+                     if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+                     listInsert(generateInstruction(I_SET_CLASS,className,NULL,NULL));
+
+                     callFunc->className = className;
+                     if (compareFunction(funcCmp, callFunc)) { return SEM_TYPE_ERROR; }
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; } 
+                     listInsert(generateInstruction(I_CALL,funcCmp,tokenParam,var));
+                     if ((strcmp(className, "ifj16")))
+                     {
+                        listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,NULL));
+                        listInsert(generateInstruction(I_FUNC_CMP,funcCmp,NULL,NULL));
+                     } 
+
+/*
+                     if(callFunc->retType == TYPE_VOID)
+                        listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,var));
+                     else
+                        listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,var));
+                     listInsert(generateInstruction(I_FUNC_CMP,funcCmp,NULL,NULL));
+                     */
+                  }
+                  else
+                  {
+                     //printf("asdasdsa\n");
+                     if (tsCheckFunc(func->stack->next->table, id)) {  return SEM_ERROR; }
+                     tList *data = tsRead(func->stack->next->table, id);
+                     if (!data) { return SEM_ERROR; }
+                     tFunc *funcCmp = data->dataPtr;
+                     tFunc *callFunc;
+                     if (createFunc(&callFunc, id, TYPE_VOID)) { return INTERNAL_ERROR; }
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if (!(tokenParam = calloc(funcCmp->paramCnt, sizeof(tVar*)))) return INTERNAL_ERROR;
+                     if ((result = parametrVolani(func, callFunc))) { return result; }
+                     
+                     if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+                     
+                     
+                     callFunc->className = className;
+                     if (compareFunction(funcCmp, callFunc)) { return SEM_TYPE_ERROR; }
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                     if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
+                     if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; } 
+                     listInsert(generateInstruction(I_CALL,funcCmp,tokenParam,var));
+                     if(var->type == TYPE_VOID)
+                        listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,var));
+                     else
+                        listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,NULL));
+                        listInsert(generateInstruction(I_FUNC_CMP,funcCmp,NULL,NULL));
+                     
+                     /*
+                     listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,var));
+                     listInsert(generateInstruction(I_FUNC_CMP,funcCmp,NULL,NULL));
+                     */
+                  }
+               }
                return result;
             }
          }
@@ -393,6 +526,101 @@ int rovnFun(tFunc *func)
    }
 
    return SYNTAX_ERROR;
+}
+
+int proccessPrint(tFunc *func)
+{
+
+   int result;
+   if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+   tVar *var = calloc(1, sizeof(tVar));
+   if (!var) return INTERNAL_ERROR;
+
+   switch(token.type)
+   {
+      case LIT_INT:
+         var->type = TYPE_INT;
+         var->init = true;
+         var->value.intValue = atoi(token.id);
+         listInsert(generateInstruction(I_PRINT,NULL,NULL,var));   
+         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+         if (token.type == RIGHT_BRACKET) return SUCCESS;
+         else if (token.type != PLUS) return SYNTAX_ERROR;
+         if ((result = proccessPrint(func))) { return result; }
+         return SUCCESS; 
+
+      case LIT_DOUBLE:
+         var->type = TYPE_DOUBLE;
+         var->init = true;
+         char *ptr;
+         var->value.doubleValue = strtod(token.id, &ptr);
+         listInsert(generateInstruction(I_PRINT,NULL,NULL,var));   
+         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+         if (token.type == RIGHT_BRACKET) return SUCCESS;
+         else if (token.type != PLUS) return SYNTAX_ERROR;
+         if ((result = proccessPrint(func))) { return result; }
+         return SUCCESS;
+      case CHAIN:
+         var->type = TYPE_STRING;
+         var->init = true;
+         var->value.stringValue = token.id;
+         listInsert(generateInstruction(I_PRINT,NULL,NULL,var));   
+         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+         if (token.type == RIGHT_BRACKET) return SUCCESS;
+         else if (token.type != PLUS) return SYNTAX_ERROR;
+         if ((result = proccessPrint(func))) { return result; }
+         return SUCCESS;
+      case IDENTIFIER:
+      {
+         tList *data = tsRead(func->stack->table, token.id);
+         if (!data)
+         {
+            data = tsRead(func->stack->next->table, token.id);
+            if (!data)
+            {
+               debug("Undef reference\n");
+               return SEM_ERROR;
+            }
+         }
+
+         var = data->dataPtr;
+         listInsert(generateInstruction(I_PRINT,NULL,NULL,var));   
+         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+         if (token.type == RIGHT_BRACKET) return SUCCESS;
+         else if (token.type != PLUS) return SYNTAX_ERROR;
+         if ((result = proccessPrint(func))) { return result; }
+         return SUCCESS;     
+      }
+      case FULL_IDENTIFIER:
+      {
+         char *className;
+         char *functionName;
+
+         functionName = parseFullId(&className, functionName);
+         if (!functionName) { return SYNTAX_ERROR; }
+         tList *data = tsRead(globalTS, className);
+         if (!data) { debug("Nedeklarovana promenna\n"); return SEM_ERROR; }
+         tClass *class = data->dataPtr;
+         data = tsRead(class->symbolTable, functionName);
+         if (!data) { debug("Nedeklarovana promenna\n"); return SEM_ERROR; }
+         if (data->func) { debug("naopak funkce neni promenna\n"); return SEM_ERROR;}
+         var = data->dataPtr;
+         listInsert(generateInstruction(I_PRINT,NULL,NULL,var));   
+         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+         if (token.type == RIGHT_BRACKET) return SUCCESS;
+         else if (token.type != PLUS) return SYNTAX_ERROR;
+         if ((result = proccessPrint(func))) { return result; }
+         return SUCCESS;     
+
+      }
+      case RIGHT_BRACKET:
+      return SUCCESS;
+
+      default:
+      return SYNTAX_ERROR;
+
+   }
+
 }
 
 int controlDecTable(table *TS, char *key)
@@ -447,20 +675,28 @@ int strRovn(tFunc *func)
                         if (tsCheckFunc(func->stack->next->table, funcName)) {  return SEM_ERROR; }
                         tFunc *callFunc;
                         if (createFunc(&callFunc, funcName, var->type)) { return INTERNAL_ERROR; }
-                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
-                        if ((result = parametrVolani(func, callFunc))) { return result; }
-                        if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
                         tList *data = tsRead(func->stack->next->table, funcName);
                         if (!data) { return SEM_ERROR; }
                         tFunc *funcCmp = data->dataPtr;
+                        if (!(tokenParam = calloc(funcCmp->paramCnt, sizeof(tVar*)))) return INTERNAL_ERROR;
+                        if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        if ((result = parametrVolani(func, callFunc))) { return result; }
+                        if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
+
                         if (compareFunction(funcCmp, callFunc)) { return SEM_TYPE_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
                         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        listInsert(generateInstruction(I_CALL,funcCmp,tokenParam,var));
+
+                        listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,NULL));
+                        listInsert(generateInstruction(I_FUNC_CMP,funcCmp,NULL,NULL));
                         return result;
                      }
                      else 
                      {
+                        setRetType(var->type);
+                        if (var->type == TYPE_STRING) listInsert(generateInstruction(I_SET_CONCAT,NULL,NULL,NULL));
                         if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
                         if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
@@ -468,6 +704,8 @@ int strRovn(tFunc *func)
                         if ((result = expression(false, func->stack))) { return result; } 
                         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        listInsert(generateInstruction(I_ASSIGNMENT,vysExp,NULL,var));
+                        
                         return result;
                      }
                   }
@@ -488,19 +726,36 @@ int strRovn(tFunc *func)
                         if (!data) { debug("Nedeklarovana funkce\n"); return SEM_ERROR; }
                         if (!data->func) { debug("funkce neni funkce\n"); return SEM_ERROR;}
                         tFunc *callFunc;
-                        if (createFunc(&callFunc, funcName, var->type)) { return INTERNAL_ERROR; }
+                        if (createFunc(&callFunc, functionName, var->type)) { return INTERNAL_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        tFunc *funcCmp = data->dataPtr;
+                        if (!(tokenParam = calloc(funcCmp->paramCnt, sizeof(tVar*)))) return INTERNAL_ERROR;
                         if ((result = parametrVolani(func, callFunc))) { return result; }
                         if (token.type != RIGHT_BRACKET) { return SYNTAX_ERROR; }
-                        tFunc *funcCmp = data->dataPtr;
+                        
+                        callFunc->className = className;
+                        listInsert(generateInstruction(I_SET_CLASS,className,NULL,NULL));
                         if (compareFunction(funcCmp, callFunc)) { return SEM_TYPE_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
                         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        listInsert(generateInstruction(I_CALL,funcCmp,tokenParam,var));
+                        if ((strcmp(className, "ifj16")))
+                        {
+                           listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,NULL));
+                           listInsert(generateInstruction(I_FUNC_CMP,funcCmp,NULL,NULL));
+                        } 
+                        /*
+                        listInsert(generateInstruction(I_SET_RET,funcCmp,tokenParam,NULL));
+                        listInsert(generateInstruction(I_FUNC_CMP,funcCmp,NULL,NULL));
+                        */
+
                         return result;
                      }
                      else
                      {
+                        setRetType(var->type);
+                        if (var->type == TYPE_STRING) listInsert(generateInstruction(I_SET_CONCAT,NULL,NULL,NULL));
                         if (insertTokenFifo(&tmp)) { return INTERNAL_ERROR; }
                         if (insertTokenFifo(&token)) { return INTERNAL_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
@@ -508,16 +763,21 @@ int strRovn(tFunc *func)
                         if ((result = expression(false, func->stack))) { return result; } 
                         if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                         if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                        listInsert(generateInstruction(I_ASSIGNMENT,vysExp,NULL,var));
                         return result;
                      }
                   }
                }
                else
                {
+                  setRetType(var->type);
+                  if (var->type == TYPE_STRING) listInsert(generateInstruction(I_SET_CONCAT,NULL,NULL,NULL));
                   if ((result = checkExpr())) { return result; }
                   if ((result = expression(false, func->stack))) { return result; } 
                   if (token.type != SEMICOLON) { return SYNTAX_ERROR; }
                   if ((result = getToken(&token))) { debug("expre - v LEX\n"); return result; }
+                  listInsert(generateInstruction(I_ASSIGNMENT,vysExp,NULL,var));
+ 
                   return result;
                }
             }
@@ -598,6 +858,7 @@ int tsCheckFunc(table *TS, char *id)
    tList *data = tsRead(TS, id);
    if (data)
    {
+
       if(!data->func) return SEM_ERROR;
       return SUCCESS;
    }
@@ -642,42 +903,54 @@ int boolExp()
 int blok(tFunc *func)
 {
    int result;
-
    switch (token.type)
    {
       case IDENTIFIER:
       case FULL_IDENTIFIER:
       {
+         // listInsert(generateInstruction(I_TEST,vysExp,NULL,NULL));
          if ((result = rovnFun(func))) { return result; } 
          if ((result = blok(func))) { return result; } 
          return result;
       }
       case IF:
       {
+
+         setRetType(TYPE_DOUBLE);
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (token.type != LEFT_BRACKET) { debug("IF nema ( -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_BRACKET) { debug("IF nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (checkExpr()) { return SYNTAX_ERROR; }
-         if (expression(true, func->stack)) { return SYNTAX_ERROR; }   
+         if ((result = checkExpr())) { return result; }
+         if (expression(true, func->stack)) {  return SYNTAX_ERROR; }
+         tInstructionList *act = ActualList;
+         tInstructionItem *ifJMP = listInsert(generateInstruction(I_IF,vysExp,NULL,NULL));
          if (token.type != RIGHT_BRACKET) { debug("IF nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         if (!(blokList = listInit())) return INTERNAL_ERROR;  // init blok
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = blok(func))) { return result; }
-         if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         listInsert(generateInstruction(I_SKIP_TAPE,NULL,NULL,NULL));
+         ifJMP->Instruction->addr2 = ActualList; // pridani bloku
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != ELSE) { debug("IF nema ELSE ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         if (!(blokList = listInit())) return INTERNAL_ERROR; // init blok
          if ((result = blok(func))) { return result; }
-         if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         listInsert(generateInstruction(I_SKIP_TAPE,NULL,NULL,NULL));
+         ifJMP->Instruction->addr3 = ActualList; // pridani bloku
+         ActualList = act; // nastaveni zpet       
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = blok(func))) { return result; } 
          return result;
       }
       case DO:
       {
+         setRetType(TYPE_DOUBLE);
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_CURLY_BRACKET) { debug("DO nema { -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
@@ -699,27 +972,75 @@ int blok(tFunc *func)
       }
       case WHILE:
       {
+         setRetType(TYPE_DOUBLE);
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
-         if (token.type != LEFT_BRACKET) { debug("WHILE nema ( -- %s\n", printTok(&token)); return result; }
+         if (token.type != LEFT_BRACKET) { debug("WHILE nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         tInstructionItem *skipWhileJMP = listInsert(generateInstruction(I_SKIP_NEXT_INST,NULL,NULL,NULL));
          if ((result = checkExpr())) { return result; }
-         if (expression(true, func->stack)) { return SYNTAX_ERROR; }   
-         if (token.type != RIGHT_BRACKET) { debug("WHILE nema ) -- %s\n", printTok(&token)); return result; }
+         if (expression(true, func->stack)) { return SYNTAX_ERROR; }
+
+         tInstructionList *act = ActualList;
+         tInstructionItem *whileJMP = listInsert(generateInstruction(I_WHILE,vysExp,NULL,NULL)); 
+         if (!(blokList = listInit())) return INTERNAL_ERROR; // init blok  
+
+         if (token.type != RIGHT_BRACKET) { debug("WHILE nema ) -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != LEFT_CURLY_BRACKET) { debug("WHILE nema { -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+
          if ((result = blok(func))) { return result; }
-         if (token.type != RIGHT_CURLY_BRACKET) { debug("WHILE nema } -- %s\n", printTok(&token)); return result; }
+         if (token.type != RIGHT_CURLY_BRACKET) { debug("WHILE nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+
+         listInsert(generateInstruction(I_SKIP_TAPE,NULL,NULL,NULL));
+         whileJMP->Instruction->addr2 = ActualList; // pridani bloku
+         ActualList = act; // nastaveni zpet 
+         listInsert(generateInstruction(I_SKIP_BEFORE_WHILE,skipWhileJMP,NULL,NULL));
+         
+         skipWhileJMP = listInsert(generateInstruction(I_SKIP_NEXT_INST,NULL,NULL,NULL));
+         whileJMP->Instruction->addr3 = skipWhileJMP;
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
          if ((result = blok(func))) { return result; } 
          return result; 
       }
       case RETURN:
-      {
+      {/*
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = checkExpr())) { return result; }
          if (expression(true, func->stack)) { return SYNTAX_ERROR; }       
          if ((result = blok(func))) { return result; } 
+         return result; 
+*/
+         //printf("return\n");
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if (token.type == SEMICOLON)
+         {
+            if (func->retType != TYPE_VOID) { debug("Prazdny return v ne Void funkci\n"); return SYNTAX_ERROR; } 
+            tInstructionItem *ifJMP = listInsert(generateInstruction(I_RETURN,NULL,func->funcTable,NULL));
+         }
+         else
+         {
+            //printf("FUNC RET TYPEEEEE %d\n",func->retType );
+            if(func->retType == TYPE_STRING)
+            {
+               vysExp->type = TYPE_STRING;
+               setRetType(TYPE_STRING);
+            }
+            if ((result = checkExpr())) { return result; }
+            if (expression(true, func->stack)) { return SYNTAX_ERROR; }  
+            if(func->retType == TYPE_STRING)
+            {
+               //printf("asdasdas\n"); exit(44);
+               vysExp->type = TYPE_STRING;
+            }
+            tInstructionItem *ifJMP = listInsert(generateInstruction(I_RETURN,vysExp,func->funcTable,NULL));   
+         }
+         //printf("retasdasdurn\n");
+              
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         if ((result = blok(func))) { return result; } 
+         //printf("ret87878urn\n");
+
          return result; 
       }
       default:
@@ -730,6 +1051,7 @@ int blok(tFunc *func)
 
 int veFunkci(tFunc *func)
 {
+
    int result;
    switch (token.type)
    {
@@ -751,30 +1073,41 @@ int veFunkci(tFunc *func)
       }    
       case IF:
       {
+         setRetType(TYPE_DOUBLE);
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("IF nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = checkExpr())) { return result; }
          if (expression(true, func->stack)) {  return SYNTAX_ERROR; }
+         tInstructionList *act = ActualList;
+         tInstructionItem *ifJMP = listInsert(generateInstruction(I_IF,vysExp,NULL,NULL));
          if (token.type != RIGHT_BRACKET) { debug("IF nema ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         if (!(blokList = listInit())) return INTERNAL_ERROR;  // init blok
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         listInsert(generateInstruction(I_SKIP_TAPE,NULL,NULL,NULL));
+         ifJMP->Instruction->addr2 = ActualList; // pridani bloku
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != ELSE) { debug("IF nema ELSE ) -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != LEFT_CURLY_BRACKET) { debug("IF nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         if (!(blokList = listInit())) return INTERNAL_ERROR; // init blok
          if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("IF nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+         listInsert(generateInstruction(I_SKIP_TAPE,NULL,NULL,NULL));
+         ifJMP->Instruction->addr3 = ActualList; // pridani bloku
+         ActualList = act; // nastaveni zpet       
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if ((result = veFunkci(func))) { return result; } 
          return result;
       }
       case DO:
       {
+         setRetType(TYPE_DOUBLE);
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_CURLY_BRACKET) { debug("DO nema { -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
@@ -796,33 +1129,70 @@ int veFunkci(tFunc *func)
       }
       case WHILE:
       {
+         setRetType(TYPE_DOUBLE);
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if (token.type != LEFT_BRACKET) { debug("WHILE nema ( -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+         tInstructionItem *skipWhileJMP = listInsert(generateInstruction(I_SKIP_NEXT_INST,NULL,NULL,NULL));
          if ((result = checkExpr())) { return result; }
-         if (expression(true, func->stack)) { return SYNTAX_ERROR; }   
+         if (expression(true, func->stack)) { return SYNTAX_ERROR; }
+         tInstructionList *act = ActualList;
+         tInstructionItem *whileJMP = listInsert(generateInstruction(I_WHILE,vysExp,NULL,NULL)); 
+         if (!(blokList = listInit())) return INTERNAL_ERROR; // init blok  
          if (token.type != RIGHT_BRACKET) { debug("WHILE nema ) -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type != LEFT_CURLY_BRACKET) { debug("WHILE nema { -- %s\n", printTok(&token)); return result; }
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
+
          if ((result = blok(func))) { return result; }
          if (token.type != RIGHT_CURLY_BRACKET) { debug("WHILE nema } -- %s\n", printTok(&token)); return SYNTAX_ERROR; }
+
+         whileJMP->Instruction->addr2 = ActualList; // pridani bloku
+         listInsert(generateInstruction(I_SKIP_TAPE,NULL,NULL,NULL));
+         ActualList = act; // nastaveni zpet 
+         listInsert(generateInstruction(I_SKIP_BEFORE_WHILE,skipWhileJMP,NULL,NULL));
+         
+         skipWhileJMP = listInsert(generateInstruction(I_SKIP_NEXT_INST,NULL,NULL,NULL));
+         whileJMP->Instruction->addr3 = skipWhileJMP;
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }        
          if ((result = veFunkci(func))) { return result; } 
          return result; 
       }
       case RETURN:
       {
+         //printf("return\n");
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
          if (token.type == SEMICOLON)
+         {
+            //printf("sem tady\n\n\n\n\n");
             if (func->retType != TYPE_VOID) { debug("Prazdny return v ne Void funkci\n"); return SYNTAX_ERROR; } 
-            else { if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } return result; }
-         if ((result = checkExpr())) { return result; }
-         if (expression(true, func->stack)) { return SYNTAX_ERROR; }     
+            tInstructionItem *ifJMP = listInsert(generateInstruction(I_RETURN,NULL,func->funcTable,NULL));
+         }
+         else
+         {
+            //printf("FUNCC RET TYPE %d\n",func->retType );
+            if(func->retType == TYPE_STRING)
+            {
+               setRetType(TYPE_STRING);
+            }
+            if ((result = checkExpr())) { return result; }
+            if (expression(true, func->stack)) { return SYNTAX_ERROR; }  
+            if(func->retType == TYPE_STRING)
+            {
+               vysExp->type = TYPE_STRING;
+            }
+            tInstructionItem *ifJMP = listInsert(generateInstruction(I_RETURN,vysExp,func->funcTable,NULL));   
+         }
+         //printf("retasdasdurn\n");
+              
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; } 
          if ((result = veFunkci(func))) { return result; } 
+         //printf("ret87878urn\n");
+
          return result; 
       }
       default:
+         listInsert(generateInstruction(I_SKIP,NULL,NULL,NULL));
          return SUCCESS;
    }
 }
@@ -883,6 +1253,7 @@ int compareFunction(tFunc *func1, tFunc *func2)
       while(param1)
       {
 
+         //printf("%d %d \n", param1->type ,param2->type);
          if (param1->type != param2->type) { debug("Nerovna se typ parametru\n"); return SYNTAX_ERROR; }
          param1 = param1->nextParam;
          param2 = param2->nextParam;
@@ -990,7 +1361,9 @@ int createFunc(tFunc **func, char *id, tType typ)
    (*func)->retType = typ;
    (*func)->paramCnt = 0;
    (*func)->param = NULL;
-
+   (*func)->className = NULL;
+   (*func)->tsStack = NULL;
+   (*func)->cnt = 0;
    return SUCCESS;
 }
 
@@ -1153,6 +1526,7 @@ int GlobalWalkthrought()
                if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
                continue;
             }
+            return SYNTAX_ERROR;
 
          }
          else 
@@ -1173,6 +1547,7 @@ int GlobalWalkthrought()
 int parametrVolani(tFunc *func, tFunc *callFunc)
 {
    int result;
+   int i = 0;
 
    switch (token.type)
    {
@@ -1183,8 +1558,10 @@ int parametrVolani(tFunc *func, tFunc *callFunc)
          if (data->func) { debug("Promenna je funkce\n"); return SYNTAX_ERROR; }
          tVar *var = data->dataPtr; 
          if (addFuncParam(callFunc, var->type)) { return INTERNAL_ERROR; }
+         tokenParam[i] = var;
+
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = dalsiParametrVolani(func, callFunc))) { return result; } 
+         if ((result = dalsiParametrVolani(func, callFunc, ++i))) { return result; } 
          return result;
       }
       case FULL_IDENTIFIER:
@@ -1201,16 +1578,60 @@ int parametrVolani(tFunc *func, tFunc *callFunc)
          if (data->func) { debug("Promenna je funkce\n"); return SYNTAX_ERROR;}
          tVar *var = data->dataPtr; 
          if (addFuncParam(callFunc, var->type)) { return INTERNAL_ERROR; }
+
+         tokenParam[i] = var;
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = dalsiParametrVolani(func, callFunc))) { return result; } 
+         if ((result = dalsiParametrVolani(func, callFunc, ++i))) { return result; } 
          return result;
       }
       case CHAIN:
-      case LIT_INT:
-      case LIT_DOUBLE:
       {
+        /////printf("toto %s \n",token.value.stringValue );
+         if (addFuncParam(callFunc, TYPE_STRING)) { return INTERNAL_ERROR; }
+         
+         tVar *var = calloc(1, sizeof(tVar));
+         if(!var) return INTERNAL_ERROR;
+         var->type = TYPE_STRING;
+         var->value.stringValue = token.id;
+         var->init = true;
+         tokenParam[i] = var;
+
+
          if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-         if ((result = dalsiParametrVolani(func, callFunc))) { return result; } 
+         if ((result = dalsiParametrVolani(func, callFunc, ++i))) { return result; } 
+         return result;
+      }
+      case LIT_INT:
+      {
+         if (addFuncParam(callFunc, TYPE_INT)) { return INTERNAL_ERROR; }
+         tVar *var = calloc(1, sizeof(tVar));
+         if(!var) return INTERNAL_ERROR;
+         var->type = TYPE_INT;
+         var->value.intValue = atoi(token.id);
+         var->init = true;
+         tokenParam[i] = var;
+       
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = dalsiParametrVolani(func, callFunc,++i))) { return result; } 
+         return result;
+      }
+
+      case LIT_DOUBLE:
+      
+      {
+         if (addFuncParam(callFunc, TYPE_DOUBLE)) { return INTERNAL_ERROR; }
+
+          tVar *var = calloc(1, sizeof(tVar));
+         if(!var) return INTERNAL_ERROR;
+         var->type = TYPE_DOUBLE;
+         char *ptr;
+         var->value.doubleValue = strtod(token.id, &ptr);
+         var->init = true;
+         tokenParam[i] = var;
+
+
+         if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+         if ((result = dalsiParametrVolani(func, callFunc,++i))) { return result; } 
          return result;
       }
       default:
@@ -1219,7 +1640,7 @@ int parametrVolani(tFunc *func, tFunc *callFunc)
 }
 
 
-int dalsiParametrVolani(tFunc *func, tFunc *callFunc)
+int dalsiParametrVolani(tFunc *func, tFunc *callFunc, int i)
 {
    int result;
 
@@ -1241,7 +1662,8 @@ int dalsiParametrVolani(tFunc *func, tFunc *callFunc)
                tVar *var = data->dataPtr; 
                if (addFuncParam(callFunc, var->type)) { return INTERNAL_ERROR; }
                if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-               if ((result = dalsiParametrVolani(func, callFunc))) { return result; }
+               tokenParam[i] = var;
+               if ((result = dalsiParametrVolani(func, callFunc, ++i))) { return result; }
                return result;
             }
             case FULL_IDENTIFIER:
@@ -1259,16 +1681,65 @@ int dalsiParametrVolani(tFunc *func, tFunc *callFunc)
                tVar *var = data->dataPtr; 
                if (addFuncParam(callFunc, var->type)) { return INTERNAL_ERROR; }
                if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-               if ((result = dalsiParametrVolani(func, callFunc))) { return result; }
+               tokenParam[i] = var;
+               if ((result = dalsiParametrVolani(func, callFunc,++i))) { return result; }
                return result;
             }
             case CHAIN:
-            case LIT_INT:
-            case LIT_DOUBLE:
+            {
+              /////printf("toto %s \n",token.value.stringValue );
+               if (addFuncParam(callFunc, TYPE_STRING)) { return INTERNAL_ERROR; }
+               
+               tVar *var = calloc(1, sizeof(tVar));
+               if(!var) return INTERNAL_ERROR;
+               var->type = TYPE_STRING;
+               var->init = true;
+               var->value.stringValue = token.id;
+               tokenParam[i] = var;
+
                if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
-               if ((result = dalsiParametrVolani(func, callFunc))) { return result; }
+               if ((result = dalsiParametrVolani(func, callFunc, ++i))) { return result; } 
                return result;
-         }         
+            }
+            case LIT_INT:
+            
+            {
+               //printf("%d int \n",i );
+               if (addFuncParam(callFunc, TYPE_INT)) { return INTERNAL_ERROR; }
+
+               tVar *var = calloc(1, sizeof(tVar));
+               if(!var) return INTERNAL_ERROR;
+               var->type = TYPE_INT;
+               var->init = true;
+               var->value.intValue = atoi(token.id);
+               tokenParam[i] = var;
+              
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               if ((result = dalsiParametrVolani(func, callFunc,++i))) { return result; } 
+               return result;
+            }
+
+            case LIT_DOUBLE:
+            
+            {
+               if (addFuncParam(callFunc, TYPE_DOUBLE)) { return INTERNAL_ERROR; }
+
+               tVar *var = calloc(1, sizeof(tVar));
+               if(!var) return INTERNAL_ERROR;
+               var->type = TYPE_DOUBLE;
+               var->init = true;
+               char *ptr;
+               var->value.doubleValue = strtod(token.id, &ptr);
+               tokenParam[i] = var;
+               
+               
+
+               if ((result = getToken(&token))) { debug("ERROR - v LEX\n"); return result; }
+               if ((result = dalsiParametrVolani(func, callFunc,++i))) { return result; } 
+               return result;
+            }
+         }
+                
       }
       default:
          return SUCCESS;

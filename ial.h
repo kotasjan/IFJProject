@@ -1,6 +1,8 @@
 #ifndef IAL_H
 #define IAL_H
 #include <stdbool.h>
+#include "instruction.h"
+#include "scaner.h"
 //#include "scaner.h"
 
 #define TABLE_SIZE 100
@@ -32,6 +34,12 @@ typedef struct
    char *id;
    tType type;
    bool init;
+   union 
+   {
+      int intValue;
+      double doubleValue;
+      char *stringValue;
+   }value;
 } tVar;
 
 
@@ -60,17 +68,33 @@ typedef struct
    table symbolTable;
    bool isDeclared;
 } tClass;
+/*
+
+*/
+
+typedef struct tableStack
+{
+   table *TS;
+   struct tableStack * next;
+} tTableStack;
 
 typedef struct 
 {
    char *name;
+   void *tok;
+   //struct toka *tok;
    unsigned paramCnt;
    tType retType;
    tFuncParam *param;
    tStack *stack;
+   tInstructionList *List;
    table funcTable;
    bool isDeclared;
+   char *className;
+   int cnt;
+   tTableStack *tsStack;
 } tFunc;
+
 
 
 int hashFunction(const char *key, unsigned htab_size);

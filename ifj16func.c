@@ -55,18 +55,21 @@ int addIFJ16(table *TS)
    tFunc *func;
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "readInt";
+   func->className = "ifj16";
    func->retType = TYPE_INT;
    func->isDeclared = true;
    if (addFunction(IFJ16->symbolTable, func)) { return INTERNAL_ERROR; }
 
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "readDouble";
+   func->className = "ifj16";
    func->retType = TYPE_DOUBLE;
    func->isDeclared = true;
    if (addFunction(IFJ16->symbolTable, func)) { return INTERNAL_ERROR; }
 
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "readString";
+   func->className = "ifj16";
    func->retType = TYPE_STRING;
    func->isDeclared = true;
    if (addFunction(IFJ16->symbolTable, func)) { return INTERNAL_ERROR; }
@@ -74,12 +77,14 @@ int addIFJ16(table *TS)
    // TODO -- PARAMTERY
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "print";
+   func->className = "ifj16";
    func->retType = TYPE_VOID;
    func->isDeclared = true;
    if (addFunction(IFJ16->symbolTable, func)) { return INTERNAL_ERROR; }
 
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "length";
+   func->className = "ifj16";
    func->retType = TYPE_INT;
    func->isDeclared = true;
    if (addFunctionParam(func, TYPE_STRING, "s")) { return INTERNAL_ERROR; }
@@ -87,7 +92,8 @@ int addIFJ16(table *TS)
 
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "substr";
-   func->retType = TYPE_INT;
+   func->className = "ifj16";
+   func->retType = TYPE_STRING;
    func->isDeclared = true;
    if (addFunctionParam(func, TYPE_STRING, "s")) { return INTERNAL_ERROR; }
    if (addFunctionParam(func, TYPE_INT, "i")) { return INTERNAL_ERROR; }
@@ -96,6 +102,7 @@ int addIFJ16(table *TS)
 
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "compare";
+   func->className = "ifj16";
    func->retType = TYPE_INT;
    func->isDeclared = true;
    if (addFunctionParam(func, TYPE_STRING, "s1")) { return INTERNAL_ERROR; }
@@ -104,6 +111,7 @@ int addIFJ16(table *TS)
 
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "find";
+   func->className = "ifj16";
    func->retType = TYPE_INT;
    func->isDeclared = true;
    if (addFunctionParam(func, TYPE_STRING, "s")) { return INTERNAL_ERROR; }
@@ -112,6 +120,7 @@ int addIFJ16(table *TS)
 
    if (NULL == (func = calloc(1, sizeof(tFunc)))) { return INTERNAL_ERROR; }
    func->name = "sort";
+   func->className = "ifj16";
    func->retType = TYPE_STRING;
    func->isDeclared = true;
    if (addFunctionParam(func, TYPE_STRING, "s")) { return INTERNAL_ERROR; }
