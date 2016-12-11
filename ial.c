@@ -330,10 +330,25 @@ void* tsRead ( table* TS, char *key ) {
    }
 }
 
+void htClearAll ( table* TS ) {
 
+   // vymazu celou tabulku
+   if(*TS)
+   {
+      int i = 0;
+      while(i != TABLE_SIZE)
+      {
+         if((*TS)[i])
+         {
+            while((*TS)[i])
+            {
+               tList *tmp = (*TS)[i];
+               (*TS)[i] = (*TS)[i]->next;
+               free(tmp);
+            }
+         }
+         i++;
+      }
+   }
 
-
-
-
-
-
+}
