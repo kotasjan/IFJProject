@@ -7,7 +7,7 @@ class Main {
 	}
 }
 
-class Pomocna(){
+class Pomocna {
 
 	static int vratInt(int b){
 		if(Main.a > 5){
