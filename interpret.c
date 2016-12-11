@@ -1466,13 +1466,6 @@ void mathExpr(int exprType, tInstr *Instruction)
 }
 
 int interpret(tInstructionList *L){
-    //int error = 0;
-   // tStackList *stackList = (tStackList*)calloc(1, sizeof(tStackList));
-    //stackInstructionInit(stackList);
-   // tStackTrees stackTrees;
-  //  stackInit(&stackTrees);
-   // string tempStr;
-   // strInit(&tempStr);
 
   // tInstructionList *retList;
    struct retList *top = NULL;
