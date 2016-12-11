@@ -3,17 +3,11 @@ class Main {
 
 	static void run(){
 	Main.a = 10;
-	int b = vratInt(Main.a);
-		if(Pomocna.ahoj + 5 >= b){
-			ifj16.print("Toto se provede");
-		}else{
-			ifj16.print("Toto se neprovede");
-		}
+	int b = Pomocna.vratInt(Main.a);
 	}
 }
 
 class Pomocna(){
-	static int ahoj = 5;
 
 	static int vratInt(int b){
 		if(Main.a > 5){

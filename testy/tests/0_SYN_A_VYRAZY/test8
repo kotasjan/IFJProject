@@ -2,7 +2,7 @@ class Main {
 	static String str = "Ahoj svete";
 
 	static void run(){
-		int a = ifj16.compare(str, "ahoj") * 5;
+		int a = ifj16.compare(str, "ahoj");
 		if(a > 0){
 			ifj16.print("toto se provede");
 		}else{

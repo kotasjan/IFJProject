@@ -3,10 +3,10 @@ class Main {
 
 	static void run(){
 		int a = ifj16.find(str, "svete");
-		if(a != -1){
-			ifj16.print("toto se provede");
-		}else{
+		if(a == 0){
 			ifj16.print("toto se neprovede");
+		}else{
+			ifj16.print("toto se provede");
 		}
 	}
 }
