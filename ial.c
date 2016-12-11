@@ -155,7 +155,9 @@ void print_double(double x)
 
 void print_string(char * x)
 {
+	fflush(stdout);
 	printf("%s", x);
+	fflush(stdout);
 	
 	return;
 }
