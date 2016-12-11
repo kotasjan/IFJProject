@@ -1,7 +1,7 @@
 class Main {
-	static double a = 5+e2;
+	static double a = 5e+;
 
 	static void run(){
-		String za = "ahoj";
+
 	}
 }
