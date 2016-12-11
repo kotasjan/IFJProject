@@ -1027,7 +1027,7 @@ int blok(tFunc *func)
                setRetType(TYPE_STRING);
             }
             if ((result = checkExpr())) { return result; }
-            if (expression(true, func->stack)) { return SYNTAX_ERROR; }  
+            if (expression(false, func->stack)) { return SYNTAX_ERROR; }  
             if(func->retType == TYPE_STRING)
             {
                //printf("asdasdas\n"); exit(44);
@@ -1176,7 +1176,7 @@ int veFunkci(tFunc *func)
                setRetType(TYPE_STRING);
             }
             if ((result = checkExpr())) { return result; }
-            if (expression(true, func->stack)) { return SYNTAX_ERROR; }  
+            if (expression(false, func->stack)) { return SYNTAX_ERROR; }  
             if(func->retType == TYPE_STRING)
             {
                vysExp->type = TYPE_STRING;

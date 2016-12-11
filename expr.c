@@ -926,7 +926,7 @@ void sumVal(int single)
                break;
 
             case MINUS:
-               printf("-\n");
+               //printf("-\n");
                oper = '-';
                break;
             case DIVISION:

@@ -23,7 +23,7 @@ int main(int argc, char **argv){
 
 	ret = parse();
 
-	printErrCode(ret);
+	//printErrCode(ret);
 
 
 	return ret;

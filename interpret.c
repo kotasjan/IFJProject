@@ -1872,9 +1872,9 @@ int interpret(tInstructionList *L){
                   }
                   else  if(!strcmp(((tFunc*)L->active->Instruction->addr1)->name , "substr"))
                   {
-                     if (((tVar**)L->active->Instruction->addr2)[0]->type != TYPE_STRING) return 4;
-                     if (((tVar**)L->active->Instruction->addr2)[1]->type != TYPE_INT) return 4;
-                     if (((tVar**)L->active->Instruction->addr2)[2]->type != TYPE_INT) return 4;
+                     if (((tVar**)L->active->Instruction->addr2)[0]->type != TYPE_STRING) exit(4);
+                     if (((tVar**)L->active->Instruction->addr2)[1]->type != TYPE_INT) exit(4);
+                     if (((tVar**)L->active->Instruction->addr2)[2]->type != TYPE_INT) exit(4);
                      if(checkInit(((tVar**)L->active->Instruction->addr2)[0])) { debug("INIT\n"); exit(8); }
                      if( checkInit(((tVar**)L->active->Instruction->addr2)[1])) { debug("INIT\n"); exit(8); }
                      if(checkInit(((tVar**)L->active->Instruction->addr2)[2])) { debug("INIT\n"); exit(8); }
@@ -1883,11 +1883,12 @@ int interpret(tInstructionList *L){
                      ((tVar*)L->active->Instruction->addr3)->value.stringValue = substr(((tVar**)L->active->Instruction->addr2)[0]->value.stringValue,
                                                                                        ((tVar**)L->active->Instruction->addr2)[1]->value.intValue,
                                                                                        ((tVar**)L->active->Instruction->addr2)[2]->value.intValue);
+                     if (((tVar*)L->active->Instruction->addr3)->value.stringValue == NULL) exit(10);
                   }
                   else  if(!strcmp(((tFunc*)L->active->Instruction->addr1)->name , "compare"))
                   {
-                     if (((tVar**)L->active->Instruction->addr2)[0]->type != TYPE_STRING) return 4;
-                     if (((tVar**)L->active->Instruction->addr2)[1]->type != TYPE_STRING) return 4;
+                     if (((tVar**)L->active->Instruction->addr2)[0]->type != TYPE_STRING) exit(4);
+                     if (((tVar**)L->active->Instruction->addr2)[1]->type != TYPE_STRING) exit(4);
 
                      if(checkInit(((tVar**)L->active->Instruction->addr2)[0])) { debug("INIT\n"); exit(8); }
                      if( checkInit(((tVar**)L->active->Instruction->addr2)[1])) { debug("INIT\n"); exit(8); }
@@ -1897,8 +1898,8 @@ int interpret(tInstructionList *L){
                   }
                   else  if(!strcmp(((tFunc*)L->active->Instruction->addr1)->name , "find"))
                   {
-                     if (((tVar**)L->active->Instruction->addr2)[0]->type != TYPE_STRING) return 4;
-                     if (((tVar**)L->active->Instruction->addr2)[1]->type != TYPE_STRING) return 4;
+                     if (((tVar**)L->active->Instruction->addr2)[0]->type != TYPE_STRING) exit(4);
+                     if (((tVar**)L->active->Instruction->addr2)[1]->type != TYPE_STRING) exit(4);
 
                      if(checkInit(((tVar**)L->active->Instruction->addr2)[0])) { debug("INIT\n"); exit(8); }
                      if( checkInit(((tVar**)L->active->Instruction->addr2)[1])) { debug("INIT\n"); exit(8); }
@@ -1909,7 +1910,7 @@ int interpret(tInstructionList *L){
                   }
                   else  if(!strcmp(((tFunc*)L->active->Instruction->addr1)->name , "sort"))
                   {
-                     if (((tVar**)L->active->Instruction->addr2)[0]->type != TYPE_STRING) return 4;
+                     if (((tVar**)L->active->Instruction->addr2)[0]->type != TYPE_STRING) exit(4);
                      if(checkInit(((tVar**)L->active->Instruction->addr2)[0])) { debug("INIT\n"); exit(8); }
 
                      ((tVar*)L->active->Instruction->addr3)->value.stringValue = sort(((tVar**)L->active->Instruction->addr2)[0]->value.stringValue);
@@ -1942,6 +1943,7 @@ int interpret(tInstructionList *L){
                      }
                      tList *data = tsRead(((tFunc*)L->active->Instruction->addr1)->funcTable, param->id);
                      tVar *var = data->dataPtr;
+                     if (checkInit((((tVar**)L->active->Instruction->addr2))[i])) exit(8);
                      var->value.stringValue = ((tVar**)L->active->Instruction->addr2)[i]->value.stringValue;
                   }
                   else if (((tVar**)L->active->Instruction->addr2)[i]->type == TYPE_INT)
@@ -1956,6 +1958,7 @@ int interpret(tInstructionList *L){
                      }
                      tList *data = tsRead(((tFunc*)L->active->Instruction->addr1)->funcTable, param->id);
                      tVar *var = data->dataPtr;
+                     if (checkInit((((tVar**)L->active->Instruction->addr2))[i])) exit(8);
                      var->value.intValue = ((tVar**)L->active->Instruction->addr2)[i]->value.intValue;
                   }
                   else if (((tVar**)L->active->Instruction->addr2)[i]->type == TYPE_DOUBLE)
@@ -1970,6 +1973,7 @@ int interpret(tInstructionList *L){
                      }
                      tList *data = tsRead(((tFunc*)L->active->Instruction->addr1)->funcTable, param->id);
                      tVar *var = data->dataPtr;
+                     if (checkInit((((tVar**)L->active->Instruction->addr2))[i])) exit(8);
                      var->value.doubleValue = ((tVar**)L->active->Instruction->addr2)[i]->value.doubleValue;
                   }
                   i++;
