@@ -11,6 +11,7 @@ tToken token;
 tStack *stack;
 tValueStack *top;
 tToken *vysExp;
+int overeni=0;
 
 tType retType = TYPE_UNDEF;
 
@@ -1041,12 +1042,12 @@ int pop(bool logic)
       if (logic)
       {
 
-         if (!(vysledek=strcmp(pole,"E<E"))) { sumVal(0); push('E', PUSH_REDUCE, NULL); }
-         else if (!(vysledek=strcmp(pole,"E>E"))) { sumVal(0); push('E', PUSH_REDUCE, NULL); }
-         else if (!(vysledek=strcmp(pole,"EoE"))) { sumVal(0); push('E', PUSH_REDUCE, NULL); }
-         else if (!(vysledek=strcmp(pole,"EgE"))) { sumVal(0); push('E', PUSH_REDUCE, NULL); }
-         else if (!(vysledek=strcmp(pole,"EeE"))) { sumVal(0); push('E', PUSH_REDUCE, NULL); }
-         else if (!(vysledek=strcmp(pole,"EnE"))) { sumVal(0); push('E', PUSH_REDUCE, NULL); }
+         if (!(vysledek=strcmp(pole,"E<E"))) { overeni++; sumVal(0); push('E', PUSH_REDUCE, NULL); }
+         else if (!(vysledek=strcmp(pole,"E>E"))) { overeni++; sumVal(0); push('E', PUSH_REDUCE, NULL); }
+         else if (!(vysledek=strcmp(pole,"EoE"))) { overeni++; sumVal(0); push('E', PUSH_REDUCE, NULL); }
+         else if (!(vysledek=strcmp(pole,"EgE"))) { overeni++; sumVal(0); push('E', PUSH_REDUCE, NULL); }
+         else if (!(vysledek=strcmp(pole,"EeE"))) { overeni++; sumVal(0); push('E', PUSH_REDUCE, NULL); }
+         else if (!(vysledek=strcmp(pole,"EnE"))) { overeni++; sumVal(0); push('E', PUSH_REDUCE, NULL); }
          else { return SYNTAX_ERROR; }
       }
       else 
@@ -1177,6 +1178,13 @@ int expression(bool logic, tStack *stackTop)
 
    if ((result = push('$', PUSH_END, NULL))) { return result; } 
    if ((result = processing_expression(logic))) { return result; }
+   //vypis_zasobniku();
+   if((overeni!=1)&&(logic==true)) {
+    
+      exit(4);
+
+   }
+   overeni=0;
    cisteni();
 
   // printf("TOTOTTOOTOOT %d %d \n", vysExp->type);
@@ -1225,7 +1233,7 @@ int expression(bool logic, tStack *stackTop)
 
 
    retType = TYPE_UNDEF;
-   debug("Expr: vse ok %d\n" , result);
+   //printf("Expr: vse ok %d\n" , result);
    return result;     
 }
 
